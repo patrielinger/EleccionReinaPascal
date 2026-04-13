@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elecciones Reina - Login</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="login-container">
+        <h1>Elecciones Reina de Colegios</h1>
+        <div id="networkStatus" style="margin-bottom: 20px; font-size: 12px; text-align: center; color: #666;"></div>
+        <form id="loginForm">
+            <input type="text" id="username" placeholder="Usuario" required>
+            <input type="password" id="password" placeholder="Contraseña" required>
+            <button type="submit">Iniciar Sesión</button>
+        </form>
+        <div id="message"></div>
+    </div>
+    <script>
+        // Generar ID único del dispositivo
+        function getDeviceId() {
+            let deviceId = localStorage.getItem('deviceId');
+            if (!deviceId) {
+                deviceId = 'dev_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+                localStorage.setItem('deviceId', deviceId);
+            }
+            return deviceId;
+        }
+        
+        // Verificar que se accede desde red local
+        function checkLocalNetwork() {
+            const hostname = window.location.hostname;
+            const isLocal = hostname === 'localhost' || 
+                           hostname.startsWith('127.') ||
+                           hostname.startsWith('192.168.') ||
+                           hostname.startsWith('10.') ||
+                           hostname.startsWith('172.') ||
+                           hostname.startsWith('169.254.');
+            
+            const statusDiv = document.getElementById('networkStatus');
+            if (isLocal) {
+                statusDiv.innerHTML = '✓ Conectado a red local segura';
+                statusDiv.style.color = '#4CAF50';
+            } else {
+                statusDiv.innerHTML = '⚠️ Advertencia: No estás en una red local';
+                statusDiv.style.color = '#f44336';
+            }
+        }
+        
+        // Verificar red al cargar
+        checkLocalNetwork();
+        
+        // Inicializar datos si no existen
+        if (!localStorage.getItem('usuarios')) {
+            localStorage.setItem('usuarios', JSON.stringify([{ username: 'admin', password: 'admin', role: 'admin' }]));
+        }
+        if (!localStorage.getItem('candidatas')) {
+            localStorage.setItem('candidatas', JSON.stringify([]));
+        }
+        if (!localStorage.getItem('votos')) {
+            localStorage.setItem('votos', JSON.stringify({}));
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = 'Validando...';
+            messageDiv.style.color = '#666';
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const deviceId = getDeviceId();
+            
+            try {
+                // Intentar validar con el servidor
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        device_id: deviceId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    // Login exitoso
+                    const user = {
+                        username: data.username,
+                        role: data.role,
+                        session_id: data.session_id,
+                        device_id: data.device_id
+                    };
+                    localStorage.setItem('currentUser', JSON.stringify(user));
+                    
+                    messageDiv.textContent = '✓ Acceso concedido';
+                    messageDiv.style.color = '#4CAF50';
+                    
+                    setTimeout(() => {
+                        if (data.role === 'admin') {
+                            window.location.href = 'admin.html';
+                        } else {
+                            window.location.href = 'user.html';
+                        }
+                    }, 500);
+                } else if (response.status === 403 && data.allowed_devices === 0) {
+                    // Otro dispositivo ya está conectado
+                    messageDiv.textContent = '❌ Este usuario ya está conectado desde otro dispositivo';
+                    messageDiv.style.color = '#f44336';
+                } else {
+                    // Credenciales inválidas
+                    messageDiv.textContent = '❌ Usuario o contraseña incorrectos';
+                    messageDiv.style.color = '#f44336';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                // Si el servidor falla, usar método local (fallback)
+                const usuarios = JSON.parse(localStorage.getItem('usuarios'));
+                const user = usuarios.find(u => u.username === username && u.password === password);
+                if (user) {
+                    const sessionUser = {
+                        username: user.username,
+                        role: user.role,
+                        session_id: 'local_' + Date.now(),
+                        device_id: deviceId
+                    };
+                    localStorage.setItem('currentUser', JSON.stringify(sessionUser));
+                    
+                    messageDiv.textContent = '✓ Acceso concedido';
+                    messageDiv.style.color = '#4CAF50';
+                    
+                    setTimeout(() => {
+                        if (user.role === 'admin') {
+                            window.location.href = 'admin.html';
+                        } else {
+                            window.location.href = 'user.html';
+                        }
+                    }, 500);
+                } else {
+                    messageDiv.textContent = '❌ Usuario o contraseña incorrectos';
+                    messageDiv.style.color = '#f44336';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

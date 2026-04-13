@@ -1,0 +1,227 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f4f4f4;
+    box-sizing: border-box;
+}
+
+.login-container {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+input, button {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+button {
+    background: #007bff;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #0056b3;
+}
+
+#candidatasGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.candidata-card {
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.candidata-card:hover {
+    transform: scale(1.05);
+}
+
+.candidata-card img {
+    max-width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.4);
+    overflow: auto;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 500px;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: black;
+}
+
+.vote-options {
+    margin-top: 10px;
+}
+
+.vote-options label {
+    display: block;
+    margin: 5px 0;
+}
+
+.vote-options input[type="radio"] {
+    margin-right: 10px;
+}
+
+/* Media Queries para Responsive */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .login-container {
+        max-width: 100%;
+        margin: 20px;
+    }
+
+    #candidatasGrid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 15px;
+    }
+
+    .candidata-card img {
+        height: 120px;
+    }
+
+    .modal-content {
+        width: 90%;
+        margin: 20% auto;
+        padding: 15px;
+    }
+}
+
+@media (orientation: portrait) {
+    /* Para pantallas verticales (9:16) */
+    #candidatasGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .modal-content {
+        margin: 10% auto;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+}
+
+@media (orientation: landscape) {
+    /* Para pantallas horizontales (16:9) */
+    #candidatasGrid {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    }
+
+    .modal-content {
+        margin: 5% auto;
+    }
+}
+
+#admin-forms {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.separator {
+    width: 2px;
+    background-color: #333;
+    height: auto;
+    min-height: 300px;
+}
+
+#candidatas-preview {
+    margin-top: 40px;
+}
+
+#candidatasGridAdmin {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+}
+
+.candidata-card-admin {
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.candidata-card-admin img {
+    max-width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.candidata-card-admin button {
+    margin-top: 5px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.candidata-card-admin button:hover {
+    background: #c82333;
+}
+
+@media (orientation: portrait) or (max-width: 1024px) {
+    #admin-forms {
+        flex-direction: column;
+    }
+
+    .separator {
+        width: 100%;
+        height: 2px;
+        min-height: auto;
+    }
+}

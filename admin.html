@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <h1>Panel de Administración</h1>
+    <button id="logout">Cerrar Sesión</button>
+    <div id="ranking">
+        <h2>Ranking Actual</h2>
+        <div id="rankingContent"></div>
+    </div>
+    <div id="admin-forms">
+        <div id="candidatas">
+            <h2>Agregar Candidata</h2>
+            <form id="addCandidataForm">
+                <input type="text" id="nombre" placeholder="Nombre completo" required>
+                <input type="text" id="ano" placeholder="Año del secundario" required>
+                <textarea id="descripcion" placeholder="Descripción" required></textarea>
+                <input type="text" id="cancion" placeholder="Canción elegida" required>
+                <input type="number" id="numero" placeholder="Número de candidata" required>
+                <input type="file" id="foto" accept="image/*" required>
+                <button type="submit">Agregar Candidata</button>
+            </form>
+        </div>
+        <div class="separator"></div>
+        <div id="usuarios">
+            <h2>Agregar Usuario</h2>
+            <form id="addUserForm">
+                <input type="text" id="userUsername" placeholder="Usuario" required>
+                <input type="password" id="userPassword" placeholder="Contraseña" required>
+                <button type="submit">Agregar Usuario</button>
+            </form>
+            <div id="usuariosList"></div>
+        </div>
+    </div>
+    <div id="candidatas-preview">
+        <h2>Lista de Candidatas</h2>
+        <div id="candidatasGridAdmin"></div>
+    </div>
+    <script>
+        // Función para verificar que la sesión es válida
+        async function verifySession() {
+            let currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser) {
+                window.location.href = 'index.html';
+                return false;
+            }
+            
+            try {
+                const response = await fetch('/api/verify-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: currentUser.username,
+                        session_id: currentUser.session_id,
+                        device_id: currentUser.device_id
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!data.valid) {
+                    // Sesión inválida - otro dispositivo está usando esta cuenta
+                    localStorage.removeItem('currentUser');
+                    alert('⚠️ Sesión expirada: Tu usuario está conectado desde otro dispositivo');
+                    window.location.href = 'index.html';
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                // Si el servidor no responde, asumir que es válido (fallback)
+                console.log('Verificación de sesión: modo fallback');
+                return true;
+            }
+        }
+        
+        // Verificar sesión al cargar
+        verifySession().then(valid => {
+            if (valid) {
+                initAdmin();
+            }
+        });
+        
+        function initAdmin() {
+            let currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            let candidatas = JSON.parse(localStorage.getItem('candidatas')) || [];
+            let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+            let votos = JSON.parse(localStorage.getItem('votos')) || {};
+
+        function saveData() {
+            localStorage.setItem('candidatas', JSON.stringify(candidatas));
+            localStorage.setItem('usuarios', JSON.stringify(usuarios));
+            localStorage.setItem('votos', JSON.stringify(votos));
+        }
+
+        function loadRanking() {
+            const ranking = { reina: {}, princesa: {}, dama: {} };
+            for (const userVotes of Object.values(votos)) {
+                for (const [candId, cat] of Object.entries(userVotes)) {
+                    if (!ranking[cat][candId]) ranking[cat][candId] = 0;
+                    ranking[cat][candId]++;
+                }
+            }
+            let html = '';
+            for (const [cat, counts] of Object.entries(ranking)) {
+                const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+                html += `<h3>${cat.charAt(0).toUpperCase() + cat.slice(1)}</h3><ul>`;
+                sorted.forEach(([id, count]) => {
+                    const candidata = candidatas.find(c => c.id == id);
+                    if (candidata) {
+                        html += `<li>${candidata.nombre} (${candidata.numero}) - ${count} votos</li>`;
+                    }
+                });
+                html += '</ul>';
+            }
+            document.getElementById('rankingContent').innerHTML = html;
+        }
+
+        function loadCandidatas() {
+            displayCandidatasAdmin();
+            loadRanking();
+        }
+
+        function displayCandidatasAdmin() {
+            let html = '';
+            candidatas.forEach(c => {
+                html += `
+                    <div class="candidata-card-admin">
+                        <img src="${c.foto || 'img/default.jpg'}" alt="${c.nombre}">
+                        <h4>${c.nombre}</h4>
+                        <p>Número: ${c.numero}</p>
+                        <button onclick="eliminarCandidata(${c.id})">Eliminar</button>
+                    </div>
+                `;
+            });
+            document.getElementById('candidatasGridAdmin').innerHTML = html;
+        }
+
+        document.getElementById('addCandidataForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nombre = document.getElementById('nombre').value;
+            const ano = document.getElementById('ano').value;
+            const descripcion = document.getElementById('descripcion').value;
+            const cancion = document.getElementById('cancion').value;
+            const numero = document.getElementById('numero').value;
+            const foto = document.getElementById('foto').files[0];
+            if (foto) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const candidata = { id: Date.now(), nombre, ano, descripcion, cancion, numero, foto: reader.result };
+                    candidatas.push(candidata);
+                    saveData();
+                    loadCandidatas();
+                    e.target.reset();
+                };
+                reader.readAsDataURL(foto);
+            }
+        });
+
+        function eliminarCandidata(id) {
+            candidatas = candidatas.filter(c => c.id != id);
+            // Limpiar votos de esta candidata en todos los usuarios
+            for (const user in votos) {
+                delete votos[user][id];
+            }
+            saveData();
+            loadCandidatas();
+        }
+
+        function loadUsuarios() {
+            const users = usuarios.filter(u => u.role !== 'admin');
+            let html = '';
+            users.forEach(u => {
+                html += `<div>${u.username} <button onclick="eliminarUsuario('${u.username}')">Eliminar</button></div>`;
+            });
+            document.getElementById('usuariosList').innerHTML = html;
+        }
+
+        document.getElementById('addUserForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('userUsername').value;
+            const password = document.getElementById('userPassword').value;
+            usuarios.push({ username, password, role: 'user' });
+            saveData();
+            loadUsuarios();
+            e.target.reset();
+        });
+
+        function eliminarUsuario(username) {
+            usuarios = usuarios.filter(u => u.username !== username);
+            delete votos[username];
+            saveData();
+            loadUsuarios();
+        }
+
+        loadCandidatas();
+        loadUsuarios();
+
+        document.getElementById('logout').addEventListener('click', async () => {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            try {
+                await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: currentUser.username
+                    })
+                });
+            } catch (error) {
+                console.log('Error al cerrar sesión:', error);
+            }
+            localStorage.removeItem('currentUser');
+            window.location.href = 'index.html';
+        });
+        }
+    </script>
+</body>
+</html>

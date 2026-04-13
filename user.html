@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Votación</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <h1>Elecciones Reina de Colegios</h1>
+    <button id="logout">Cerrar Sesión</button>
+    <div id="ranking">
+        <h2>Ranking Actual</h2>
+        <div id="rankingContent"></div>
+    </div>
+    <input type="text" id="search" placeholder="Buscar por nombre o número">
+    <div id="candidatasGrid"></div>
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="candidataDetails"></div>
+        </div>
+    </div>
+    <script>
+        // Función para verificar que la sesión es válida
+        async function verifySession() {
+            let currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser) {
+                window.location.href = 'index.html';
+                return false;
+            }
+            
+            try {
+                const response = await fetch('/api/verify-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: currentUser.username,
+                        session_id: currentUser.session_id,
+                        device_id: currentUser.device_id
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!data.valid) {
+                    // Sesión inválida - otro dispositivo está usando esta cuenta
+                    localStorage.removeItem('currentUser');
+                    alert('⚠️ Sesión expirada: Tu usuario está conectado desde otro dispositivo');
+                    window.location.href = 'index.html';
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                // Si el servidor no responde, asumir que es válido (fallback)
+                console.log('Verificación de sesión: modo fallback');
+                return true;
+            }
+        }
+        
+        // Verificar sesión al cargar
+        verifySession().then(valid => {
+            if (valid) {
+                initVoting();
+            }
+        });
+        
+        function initVoting() {
+            let currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            let candidatas = JSON.parse(localStorage.getItem('candidatas')) || [];
+            let votos = JSON.parse(localStorage.getItem('votos')) || {};
+
+        function saveVotos() {
+            localStorage.setItem('votos', JSON.stringify(votos));
+        }
+
+        function loadRanking() {
+            // Calcular ranking basado en votos
+            const ranking = { reina: {}, princesa: {}, dama: {} };
+            for (const userVotes of Object.values(votos)) {
+                for (const [candId, cat] of Object.entries(userVotes)) {
+                    if (!ranking[cat][candId]) ranking[cat][candId] = 0;
+                    ranking[cat][candId]++;
+                }
+            }
+            let html = '';
+            for (const [cat, counts] of Object.entries(ranking)) {
+                const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+                html += `<h3>${cat.charAt(0).toUpperCase() + cat.slice(1)}</h3><ul>`;
+                sorted.slice(0, 3).forEach(([id, count]) => {
+                    const candidata = candidatas.find(c => c.id == id);
+                    if (candidata) {
+                        html += `<li>${candidata.nombre} (${candidata.numero}) - ${count} votos</li>`;
+                    }
+                });
+                html += '</ul>';
+            }
+            document.getElementById('rankingContent').innerHTML = html;
+        }
+
+        function displayCandidatas(list) {
+            let html = '';
+            list.forEach(c => {
+                html += `
+                    <div class="candidata-card" onclick="showDetails(${c.id})">
+                        <img src="${c.foto || 'img/default.jpg'}" alt="${c.nombre}">
+                        <h3>${c.nombre}</h3>
+                        <p>Número: ${c.numero}</p>
+                    </div>
+                `;
+            });
+            document.getElementById('candidatasGrid').innerHTML = html;
+        }
+
+        document.getElementById('search').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const filtered = candidatas.filter(c =>
+                c.nombre.toLowerCase().includes(query) ||
+                c.numero.toString().includes(query)
+            );
+            displayCandidatas(filtered);
+        });
+
+        const modal = document.getElementById('modal');
+        const closeBtn = document.getElementsByClassName('close')[0];
+
+        closeBtn.onclick = () => modal.style.display = 'none';
+        window.onclick = (e) => { if (e.target == modal) modal.style.display = 'none'; };
+
+        function showDetails(id) {
+            const c = candidatas.find(cand => cand.id == id);
+            if (c) {
+                const userVotes = votos[currentUser.username] || {};
+                const currentVote = userVotes[id] || '';
+                document.getElementById('candidataDetails').innerHTML = `
+                    <img src="${c.foto || 'img/default.jpg'}" alt="${c.nombre}" style="max-width:100%">
+                    <h2>${c.nombre}</h2>
+                    <p><strong>Año:</strong> ${c.ano}</p>
+                    <p><strong>Descripción:</strong> ${c.descripcion}</p>
+                    <p><strong>Canción:</strong> ${c.cancion}</p>
+                    <p><strong>Número:</strong> ${c.numero}</p>
+                    <form id="voteForm">
+                        <div class="vote-options">
+                            <label><input type="radio" name="categoria" value="reina" ${currentVote === 'reina' ? 'checked' : ''}> Reina</label>
+                            <label><input type="radio" name="categoria" value="princesa" ${currentVote === 'princesa' ? 'checked' : ''}> Princesa</label>
+                            <label><input type="radio" name="categoria" value="dama" ${currentVote === 'dama' ? 'checked' : ''}> Dama de Honor</label>
+                        </div>
+                        <button type="submit">Votar</button>
+                    </form>
+                `;
+                modal.style.display = 'block';
+                document.getElementById('voteForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const categoria = document.querySelector('input[name="categoria"]:checked');
+                    if (categoria) {
+                        votar(id, categoria.value);
+                    }
+                });
+            }
+        }
+
+        function votar(candId, categoria) {
+            if (!votos[currentUser.username]) votos[currentUser.username] = {};
+            const userVotes = votos[currentUser.username];
+            const prevVote = userVotes[candId];
+            if (prevVote && prevVote !== categoria) {
+                // Resta el voto anterior (aunque no es necesario ya que recalculamos ranking)
+            }
+            userVotes[candId] = categoria;
+            saveVotos();
+            loadRanking();
+            modal.style.display = 'none';
+        }
+
+        displayCandidatas(candidatas);
+        loadRanking();
+
+        document.getElementById('logout').addEventListener('click', async () => {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            try {
+                await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: currentUser.username
+                    })
+                });
+            } catch (error) {
+                console.log('Error al cerrar sesión:', error);
+            }
+            localStorage.removeItem('currentUser');
+            window.location.href = 'index.html';
+        });
+        }
+    </script>
+</body>
+</html>

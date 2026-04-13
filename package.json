@@ -1,0 +1,12 @@
+{
+  "name": "programaeleccionreina",
+  "version": "1.0.0",
+  "description": "Sistema de votación digital para elecciones de reina de colegios",
+  "main": "index.html",
+  "scripts": {
+    "start": "echo 'Abrir index.html en el navegador'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
