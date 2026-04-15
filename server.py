@@ -1,37 +1,74 @@
 #!/usr/bin/env python3
 import http.server
 import socketserver
+import socket
 import os
 import json
 import ipaddress
 import uuid
 import time
-from urllib.parse import urlparse, parse_qs
-from datetime import datetime, timedelta
+import cgi
+import shutil
+from urllib.parse import urlparse
+import sys
 
-# Puerto donde se ejecutará el servidor
 PORT = 3000
-
-# Rutas permitidas (relativas a la carpeta del servidor)
 ALLOWED_EXTENSIONS = {'.html', '.css', '.js', '.json', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico'}
-
-# Almacenamiento de sesiones activas
-# Formato: {'username': {'session_id': {...}, 'device_id': '...', 'timestamp': ...}}
 ACTIVE_SESSIONS = {}
-SESSION_TIMEOUT = 3600  # 1 hora en segundos
+SESSION_TIMEOUT = 3600
 
-class LocalNetworkOnlyHandler(http.server.SimpleHTTPRequestHandler):
-    """
-    Manejador que solo permite conexiones desde redes locales.
-    Rechaza cualquier conexión que provenga de internet.
-    Valida que solo un dispositivo esté conectado por usuario.
-    """
+# Crear directorio datos
+DATA_DIR = 'datos'
+os.makedirs(DATA_DIR, exist_ok=True)
+
+CANDIDATAS_FILE = os.path.join(DATA_DIR, 'candidatas.json')
+USUARIOS_FILE = os.path.join(DATA_DIR, 'usuarios.json')
+VOTOS_FILE = os.path.join(DATA_DIR, 'votos.json')
+
+def load_candidatas():
+    if os.path.exists(CANDIDATAS_FILE):
+        try:
+            with open(CANDIDATAS_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            return []
+    return []
+
+def save_candidatas(candidatas):
+    with open(CANDIDATAS_FILE, 'w') as f:
+        json.dump(candidatas, f, indent=2)
+
+def load_usuarios():
+    if os.path.exists(USUARIOS_FILE):
+        try:
+            with open(USUARIOS_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            return [{'username': 'admin', 'password': 'admin', 'role': 'admin'}]
+    return [{'username': 'admin', 'password': 'admin', 'role': 'admin'}]
+
+def save_usuarios(usuarios):
+    with open(USUARIOS_FILE, 'w') as f:
+        json.dump(usuarios, f, indent=2)
+
+def load_votos():
+    if os.path.exists(VOTOS_FILE):
+        try:
+            with open(VOTOS_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+def save_votos(votos):
+    with open(VOTOS_FILE, 'w') as f:
+        json.dump(votos, f, indent=2)
+
+class SecureHandler(http.server.SimpleHTTPRequestHandler):
     
     def is_local_ip(self, ip_str):
-        """Verifica si una IP es de una red local"""
         try:
             ip = ipaddress.ip_address(ip_str)
-            
             local_networks = [
                 ipaddress.ip_network('127.0.0.0/8'),
                 ipaddress.ip_network('192.168.0.0/16'),
@@ -39,245 +76,323 @@ class LocalNetworkOnlyHandler(http.server.SimpleHTTPRequestHandler):
                 ipaddress.ip_network('172.16.0.0/12'),
                 ipaddress.ip_network('169.254.0.0/16'),
             ]
-            
             return any(ip in network for network in local_networks)
         except ValueError:
             return False
     
-    def _lock_session(self, username, session_id, device_id):
-        """Registra una sesión activa de un usuario"""
-        ACTIVE_SESSIONS[username] = {
-            'session_id': session_id,
-            'device_id': device_id,
-            'timestamp': time.time(),
-            'ip': self.client_address[0]
-        }
-    
-    def _verify_session(self, username, session_id, device_id):
-        """Verifica si la sesión es válida para el usuario"""
-        if username not in ACTIVE_SESSIONS:
-            return True  # Sin sesión anterior, permitir
-        
-        session = ACTIVE_SESSIONS[username]
-        
-        # Verificar si la sesión ha expirado
-        if time.time() - session['timestamp'] > SESSION_TIMEOUT:
-            self._unlock_session(username)
-            return True
-        
-        # Si es el mismo dispositivo y sesión, permitir
-        if session['session_id'] == session_id and session['device_id'] == device_id:
-            session['timestamp'] = time.time()  # Actualizar timestamp
-            return True
-        
-        # Diferentes dispositivos del mismo usuario - RECHAZAR
-        return False
-    
-    def _unlock_session(self, username):
-        """Cierra la sesión de un usuario"""
-        if username in ACTIVE_SESSIONS:
-            del ACTIVE_SESSIONS[username]
-    
-    def _send_json(self, status, data):
-        """Envía respuesta JSON"""
+    def send_json(self, status, data):
+        json_data = json.dumps(data).encode('utf-8')
         self.send_response(status)
         self.send_header('Content-type', 'application/json; charset=utf-8')
+        self.send_header('Content-Length', str(len(json_data)))
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
-        self.wfile.write(json.dumps(data).encode('utf-8'))
+        self.wfile.write(json_data)
     
-    def do_POST(self):
-        """Maneja solicitudes POST para API"""
-        client_ip = self.client_address[0]
+    def handle_api_get(self, path):
+        """Maneja GET para APIs"""
+        if path == '/api/load-candidatas':
+            try:
+                candidatas = load_candidatas()
+                self.send_json(200, {'success': True, 'candidatas': candidatas})
+                return True
+            except Exception as e:
+                self.send_json(400, {'error': str(e)})
+                return True
         
-        # Verificar si la IP es local
-        if not self.is_local_ip(client_ip):
-            self._send_json(403, {'error': 'Acceso denegado: No desde red local'})
-            print(f"❌ POST denegado: {client_ip}")
-            return
+        elif path == '/api/load-usuarios':
+            try:
+                usuarios = load_usuarios()
+                self.send_json(200, {'success': True, 'usuarios': usuarios})
+                return True
+            except Exception as e:
+                self.send_json(400, {'error': str(e)})
+                return True
         
-        # Obtener la ruta
+        elif path == '/api/load-votos':
+            try:
+                votos = load_votos()
+                self.send_json(200, {'success': True, 'votos': votos})
+                return True
+            except Exception as e:
+                self.send_json(400, {'error': str(e)})
+                return True
+        
+        elif path == '/api/load-data':
+            try:
+                candidatas = load_candidatas()
+                votos = load_votos()
+                self.send_json(200, {
+                    'success': True, 
+                    'candidatas': candidatas,
+                    'votos': votos
+                })
+                return True
+            except Exception as e:
+                self.send_json(400, {'error': str(e)})
+                return True
+        
+        return False
+    
+    def do_HEAD(self):
         parsed_path = urlparse(self.path)
         path = parsed_path.path
         
-        # API: Validar login
-        if path == '/api/login':
-            content_length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(content_length).decode('utf-8')
-            try:
-                data = json.loads(body)
-                username = data.get('username')
-                device_id = data.get('device_id')
-                
-                # Cargar usuarios
-                try:
-                    with open('candidatas/usuarios.json', 'r') as f:
-                        usuarios = json.load(f)
-                except:
-                    usuarios = [{'username': 'admin', 'password': 'admin', 'role': 'admin'}]
-                
-                # Verificar credenciales
-                user = next((u for u in usuarios if u['username'] == username), None)
-                if not user:
-                    self._send_json(401, {
-                        'error': 'Usuario no encontrado',
-                        'allowed_devices': 0
-                    })
-                    return
-                
-                # Verificar si ya hay sesión activa desde otro dispositivo
-                if username in ACTIVE_SESSIONS:
-                    session = ACTIVE_SESSIONS[username]
-                    if session['device_id'] != device_id:
-                        # Mismo usuario, diferente dispositivo
-                        self._send_json(403, {
-                            'error': 'Este usuario ya está conectado desde otro dispositivo',
-                            'current_device': session['device_id'],
-                            'current_ip': session['ip'],
-                            'allowed_devices': 0
-                        })
-                        print(f"❌ Intento de conexión múltiple - Usuario: {username}, Nuevo dispositivo: {device_id}")
-                        return
-                
-                # Generar sesión
-                session_id = str(uuid.uuid4())
-                self._lock_session(username, session_id, device_id)
-                
-                self._send_json(200, {
-                    'success': True,
-                    'username': username,
-                    'role': user.get('role', 'user'),
-                    'session_id': session_id,
-                    'device_id': device_id,
-                    'allowed_devices': 1
-                })
-                print(f"✓ Login exitoso - Usuario: {username}, Dispositivo: {device_id[:8]}...")
-                
-            except Exception as e:
-                self._send_json(400, {'error': str(e)})
+        # Verificar permisos para admin.html
+        if path == '/admin.html':
+            query_params = dict(qc.split('=') for qc in parsed_path.query.split('&') if '=' in qc) if parsed_path.query else {}
+            session_id = query_params.get('session_id')
+            device_id = query_params.get('device_id')
+            
+            if not session_id or not device_id:
+                # Redirigir a login si no hay parámetros de sesión
+                self.send_response(302)
+                self.send_header('Location', '/index.html')
+                self.end_headers()
+                return
+            
+            # Verificar sesión y permisos
+            session = ACTIVE_SESSIONS.get(session_id)
+            if not session or session.get('device_id') != device_id or session.get('role') != 'admin':
+                # Usuario no autorizado - redirigir a user.html
+                self.send_response(302)
+                self.send_header('Location', '/user.html')
+                self.end_headers()
+                return
         
-        # API: Verificar sesión
-        elif path == '/api/verify-session':
-            content_length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(content_length).decode('utf-8')
-            try:
-                data = json.loads(body)
-                username = data.get('username')
-                session_id = data.get('session_id')
-                device_id = data.get('device_id')
-                
-                is_valid = self._verify_session(username, session_id, device_id)
-                
-                if is_valid:
-                    self._send_json(200, {'valid': True, 'message': 'Sesión válida'})
-                else:
-                    self._send_json(403, {
-                        'valid': False,
-                        'error': 'Sesión inválida: Tu usuario está conectado desde otro dispositivo'
-                    })
-                    print(f"❌ Sesión rechazada - Usuario: {username}")
-                
-            except Exception as e:
-                self._send_json(400, {'error': str(e)})
-        
-        # API: Cerrar sesión
-        elif path == '/api/logout':
-            content_length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(content_length).decode('utf-8')
-            try:
-                data = json.loads(body)
-                username = data.get('username')
-                self._unlock_session(username)
-                self._send_json(200, {'success': True, 'message': 'Sesión cerrada'})
-                print(f"✓ Logout - Usuario: {username}")
-            except Exception as e:
-                self._send_json(400, {'error': str(e)})
-        
-        else:
-            self._send_json(404, {'error': 'Endpoint no encontrado'})
-    
     def do_GET(self):
-        """Maneja las solicitudes GET"""
         client_ip = self.client_address[0]
-        
-        # Verificar si la IP es local
         if not self.is_local_ip(client_ip):
-            self.send_response(403)
-            self.send_header('Content-type', 'text/html; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(b'<h1>Acceso Denegado</h1><p>Esta aplicaci\xc3\xb3n solo es accesible desde redes locales.</p>')
-            print(f"❌ GET denegado: {client_ip}")
-            return
-        
-        print(f"✓ Conexión aceptada desde: {client_ip}")
-        
-        # Redirigir "/" a "index.html"
-        if self.path == '/':
-            self.path = '/index.html'
-        
-        # Verificar que solo se acceda a archivos permitidos
-        parsed_path = urlparse(self.path)
-        file_path = parsed_path.path.lstrip('/')
-        
-        # Prevenir directory traversal
-        if '..' in file_path:
-            self.send_response(403)
-            self.end_headers()
-            return
-        
-        # Verificar extensión permitida
-        _, ext = os.path.splitext(file_path)
-        if ext and ext not in ALLOWED_EXTENSIONS:
             self.send_response(403)
             self.send_header('Content-type', 'text/html; charset=utf-8')
             self.end_headers()
             self.wfile.write(b'<h1>Acceso Denegado</h1>')
             return
         
-        # Llamar al manejador por defecto
+        parsed_path = urlparse(self.path)
+        path = parsed_path.path
+        
+        # Intentar manejar API
+        if self.handle_api_get(path):
+            return
+        
+        # Verificar permisos para admin.html
+        if path == '/admin.html':
+            query_params = dict(qc.split('=') for qc in parsed_path.query.split('&') if '=' in qc) if parsed_path.query else {}
+            session_id = query_params.get('session_id')
+            device_id = query_params.get('device_id')
+            
+            if not session_id or not device_id:
+                # Redirigir a login si no hay parámetros de sesión
+                self.send_response(302)
+                self.send_header('Location', '/index.html')
+                self.end_headers()
+                return
+            
+            # Verificar sesión y permisos
+            session = ACTIVE_SESSIONS.get(session_id)
+            if not session or session.get('device_id') != device_id or session.get('role') != 'admin':
+                # Usuario no autorizado - redirigir a user.html
+                self.send_response(302)
+                self.send_header('Location', '/user.html')
+                self.end_headers()
+                return
+        
+        # Si "/"  ir a index.html
+        if self.path == '/':
+            self.path = '/index.html'
+        
+        # Servir archivo normalmente
+        file_path = parsed_path.path.lstrip('/')
+        
+        if '..' in file_path:
+            self.send_response(403)
+            self.end_headers()
+            return
+        
+        _, ext = os.path.splitext(file_path)
+        if ext and ext not in ALLOWED_EXTENSIONS:
+            self.send_response(403)
+            self.end_headers()
+            return
+        
         super().do_GET()
     
-    def log_message(self, format, *args):
-        """Personalizar los logs"""
-        return super().log_message(format, *args)
+    def do_POST(self):
+        client_ip = self.client_address[0]
+        if not self.is_local_ip(client_ip):
+            self.send_json(403, {'error': 'Acceso denegado'})
+            return
+        
+        parsed_path = urlparse(self.path)
+        path = parsed_path.path
+        
+        content_length = int(self.headers.get('Content-Length', 0))
+        body = self.rfile.read(content_length).decode('utf-8')
+        data = json.loads(body) if body else {}
+        
+        if path == '/api/save-candidatas':
+            try:
+                save_candidatas(data.get('candidatas', []))
+                self.send_json(200, {'success': True})
+                print(f"✓ Candidatas guardadas")
+            except Exception as e:
+                self.send_json(400, {'error': str(e)})
+        
+        elif path == '/api/save-usuarios':
+            try:
+                save_usuarios(data.get('usuarios', []))
+                self.send_json(200, {'success': True})
+                print(f"✓ Usuarios guardados")
+            except Exception as e:
+                self.send_json(400, {'error': str(e)})
+        
+        elif path == '/api/save-votos':
+            try:
+                save_votos(data.get('votos', {}))
+                self.send_json(200, {'success': True})
+            except Exception as e:
+                self.send_json(400, {'error': str(e)})
 
-def run_server():
-    """Inicia el servidor"""
-    print("=" * 60)
-    print("🎓 SERVIDOR DE ELECCIONES DE REINA")
-    print("=" * 60)
-    
-    # Cambiar al directorio donde está el servidor
+        elif path == '/api/upload-candidata-foto':
+            try:
+                ctype, pdict = cgi.parse_header(self.headers.get('Content-Type', ''))
+                if ctype != 'multipart/form-data':
+                    self.send_json(400, {'error': 'Content-Type debe ser multipart/form-data'})
+                    return
+                pdict['boundary'] = bytes(pdict['boundary'], 'utf-8')
+                pdict['CONTENT-LENGTH'] = int(self.headers.get('Content-Length', 0))
+                form = cgi.FieldStorage(fp=self.rfile, headers=self.headers, environ={'REQUEST_METHOD':'POST'}, keep_blank_values=True)
+                file_field = form['foto'] if 'foto' in form else None
+                numero = form.getvalue('numero')
+                if not file_field or not numero:
+                    self.send_json(400, {'error': 'Falta foto o número de candidata'})
+                    return
+                filename = file_field.filename
+                ext = os.path.splitext(filename)[1].lower()
+                if ext not in ['.png', '.jpg', '.jpeg', '.gif', '.svg']:
+                    self.send_json(400, {'error': 'Extensión de imagen no permitida'})
+                    return
+                safe_filename = f"{numero}{ext}"
+                img_dir = os.path.join(os.getcwd(), 'img')
+                os.makedirs(img_dir, exist_ok=True)
+                output_path = os.path.join(img_dir, safe_filename)
+                with open(output_path, 'wb') as out_file:
+                    shutil.copyfileobj(file_field.file, out_file)
+                self.send_json(200, {'success': True, 'foto': f'img/{safe_filename}'})
+            except Exception as e:
+                self.send_json(400, {'error': str(e)})
+        
+        elif path == '/api/login':
+            try:
+                usuarios = load_usuarios()
+                username = data.get('username')
+                password = data.get('password')
+                device_id = data.get('device_id')
+                
+                user = next((u for u in usuarios if u['username'] == username and u['password'] == password), None)
+                if user:
+                    # Eliminar sesiones anteriores del mismo usuario
+                    sessions_to_remove = [sid for sid, s in ACTIVE_SESSIONS.items() if s['username'] == username]
+                    for sid in sessions_to_remove:
+                        del ACTIVE_SESSIONS[sid]
+                    
+                    # Generar session_id único
+                    session_id = str(uuid.uuid4())
+                    ACTIVE_SESSIONS[session_id] = {
+                        'username': username,
+                        'device_id': device_id,
+                        'timestamp': time.time(),
+                        'role': user.get('role', 'user')
+                    }
+                    
+                    self.send_json(200, {
+                        'success': True,
+                        'username': username,
+                        'device_id': device_id,
+                        'session_id': session_id,
+                        'role': user.get('role', 'user')
+                    })
+                    print(f"✓ Usuario {username} inició sesión")
+                    return
+                else:
+                    self.send_json(401, {'error': 'Credenciales inválidas'})
+                    return
+            except Exception as e:
+                self.send_json(400, {'error': str(e)})
+                return
+        
+        elif path == '/api/verify-session':
+            try:
+                username = data.get('username')
+                session_id = data.get('session_id')
+                device_id = data.get('device_id')
+                
+                session = ACTIVE_SESSIONS.get(session_id)
+                if session and session['username'] == username and session['device_id'] == device_id:
+                    # Verificar timeout
+                    if time.time() - session['timestamp'] > SESSION_TIMEOUT:
+                        del ACTIVE_SESSIONS[session_id]
+                        self.send_json(200, {'valid': False})
+                        return
+                    else:
+                        session['timestamp'] = time.time()  # Actualizar timestamp
+                        self.send_json(200, {'valid': True, 'role': session.get('role', 'user')})
+                        return
+                else:
+                    self.send_json(200, {'valid': False})
+                    return
+            except Exception as e:
+                self.send_json(400, {'error': str(e)})
+                return
+        
+        elif path == '/api/logout':
+            try:
+                username = data.get('username')
+                # Buscar y eliminar la sesión del usuario
+                sessions_to_remove = [sid for sid, s in ACTIVE_SESSIONS.items() if s['username'] == username]
+                for sid in sessions_to_remove:
+                    del ACTIVE_SESSIONS[sid]
+                self.send_json(200, {'success': True})
+                print(f"✓ Usuario {username} cerró sesión")
+                return
+            except Exception as e:
+                self.send_json(400, {'error': str(e)})
+                return
+        
+        else:
+            self.send_json(404, {'error': 'Not found'})
+
+def get_local_ip():
+    """Obtiene la dirección IP local de la máquina"""
+    try:
+        # Crear un socket para conectarse a un servidor externo
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))  # Conectar a Google DNS
+        local_ip = s.getsockname()[0]
+        s.close()
+        return local_ip
+    except Exception:
+        return "127.0.0.1"  # Fallback a localhost
+
+if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     
-    # Crear carpeta candidatas si no existe
-    if not os.path.exists('candidatas'):
-        os.makedirs('candidatas')
+    # Obtener IP local
+    local_ip = get_local_ip()
     
-    # Permitir reutilizar el puerto inmediatamente
     socketserver.TCPServer.allow_reuse_address = True
-    
-    with socketserver.TCPServer(("0.0.0.0", PORT), LocalNetworkOnlyHandler) as httpd:
-        print(f"\n✓ Servidor iniciado en puerto {PORT}")
-        print(f"✓ Accesible SOLO desde redes locales (WiFi ad-hoc, privadas, etc.)")
-        print(f"✓ Denegará accesos desde internet público")
-        print(f"✓ SEGURIDAD: Solo UN dispositivo conectado por usuario")
-        print(f"\nRedes locales permitidas:")
-        print(f"  - 127.0.0.1 (localhost)")
-        print(f"  - 192.168.x.x (WiFi privada/ad-hoc)")
-        print(f"  - 10.x.x.x (Red privada)")
-        print(f"  - 172.16.x.x - 172.31.x.x (Red privada)")
-        print(f"  - 169.254.x.x (Red ad-hoc/link-local)")
-        print(f"\n" + "=" * 60)
-        print(f"Para acceder: abre http://localhost:{PORT} en tu navegador")
-        print(f"=" * 60 + "\n")
-        
+    with socketserver.TCPServer(("0.0.0.0", PORT), SecureHandler) as httpd:
+        print("=" * 60)
+        print("🎓 SERVIDOR DE ELECCIONES (v2)")
+        print("=" * 60)
+        print(f"\n✓ Escuchando en puerto {PORT}")
+        print(f"✓ Solo redes locales permitidas")
+        print(f"✓ Datos persistentes en carpeta 'datos/'")
+        print(f"\n🌐 Acceso local: http://localhost:{PORT}")
+        print(f"📱 Acceso desde red: http://{local_ip}:{PORT}")
+        print(f"\n💡 Comparte la URL de red con otros dispositivos en la misma red WiFi\n")
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
-            print("\n\n❌ Servidor detenido por el usuario")
-            httpd.shutdown()
-
-if __name__ == "__main__":
-    run_server()
-
+            print("\n✓ Servidor detenido")

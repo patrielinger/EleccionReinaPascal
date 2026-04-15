@@ -67,13 +67,20 @@
             }
         });
         
-        function initVoting() {
-            let currentUser = JSON.parse(localStorage.getItem('currentUser'));
-            let candidatas = JSON.parse(localStorage.getItem('candidatas')) || [];
-            let votos = JSON.parse(localStorage.getItem('votos')) || {};
-
+        // Variables globales
+        let currentUser;
+        let candidatas = [];
+        let votos = {};
+        
         function saveVotos() {
             localStorage.setItem('votos', JSON.stringify(votos));
+            
+            // Guardar votos en servidor
+            fetch('/api/save-votos', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({votos})
+            }).catch(e => console.log('Error guardando votos:', e));
         }
 
         function loadRanking() {
@@ -113,21 +120,6 @@
             });
             document.getElementById('candidatasGrid').innerHTML = html;
         }
-
-        document.getElementById('search').addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
-            const filtered = candidatas.filter(c =>
-                c.nombre.toLowerCase().includes(query) ||
-                c.numero.toString().includes(query)
-            );
-            displayCandidatas(filtered);
-        });
-
-        const modal = document.getElementById('modal');
-        const closeBtn = document.getElementsByClassName('close')[0];
-
-        closeBtn.onclick = () => modal.style.display = 'none';
-        window.onclick = (e) => { if (e.target == modal) modal.style.display = 'none'; };
 
         function showDetails(id) {
             const c = candidatas.find(cand => cand.id == id);
@@ -174,8 +166,49 @@
             modal.style.display = 'none';
         }
 
-        displayCandidatas(candidatas);
-        loadRanking();
+        function initVoting() {
+            currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            candidatas = JSON.parse(localStorage.getItem('candidatas')) || [];
+            votos = JSON.parse(localStorage.getItem('votos')) || {};
+
+            // Cargar datos del servidor
+            fetch('/api/load-data')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.candidatas) {
+                        candidatas = data.candidatas;
+                        localStorage.setItem('candidatas', JSON.stringify(candidatas));
+                    }
+                    if (data.votos) {
+                        votos = data.votos;
+                        localStorage.setItem('votos', JSON.stringify(votos));
+                    }
+                    
+                    displayCandidatas(candidatas);
+                    loadRanking();
+                })
+                .catch(e => {
+                    console.log('Error cargando datos del servidor, usando datos locales:', e);
+                    displayCandidatas(candidatas);
+                    loadRanking();
+                });
+
+            // Configurar event listeners después de cargar datos
+            document.getElementById('search').addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                const filtered = candidatas.filter(c =>
+                    c.nombre.toLowerCase().includes(query) ||
+                    c.numero.toString().includes(query)
+                );
+                displayCandidatas(filtered);
+            });
+
+            const modal = document.getElementById('modal');
+            const closeBtn = document.getElementsByClassName('close')[0];
+
+            closeBtn.onclick = () => modal.style.display = 'none';
+            window.onclick = (e) => { if (e.target == modal) modal.style.display = 'none'; };
+        }
 
         document.getElementById('logout').addEventListener('click', async () => {
             const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -195,7 +228,6 @@
             localStorage.removeItem('currentUser');
             window.location.href = 'index.html';
         });
-        }
     </script>
 </body>
 </html>

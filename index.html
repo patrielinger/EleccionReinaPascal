@@ -51,6 +51,40 @@
         // Verificar red al cargar
         checkLocalNetwork();
         
+        // Cargar datos del servidor al iniciar
+        async function loadServerData() {
+            try {
+                const candResponse = await fetch('/api/load-candidatas');
+                if (candResponse.ok) {
+                    const data = await candResponse.json();
+                    if (data.success) {
+                        localStorage.setItem('candidatas', JSON.stringify(data.candidatas));
+                    }
+                }
+                
+                const usersResponse = await fetch('/api/load-usuarios');
+                if (usersResponse.ok) {
+                    const data = await usersResponse.json();
+                    if (data.success) {
+                        localStorage.setItem('usuarios', JSON.stringify(data.usuarios));
+                    }
+                }
+                
+                const votosResponse = await fetch('/api/load-votos');
+                if (votosResponse.ok) {
+                    const data = await votosResponse.json();
+                    if (data.success) {
+                        localStorage.setItem('votos', JSON.stringify(data.votos));
+                    }
+                }
+            } catch (e) {
+                console.log('Datos del servidor no disponibles, usando localStorage');
+            }
+        }
+        
+        // Cargar datos del servidor al cargar la página
+        loadServerData();
+        
         // Inicializar datos si no existen
         if (!localStorage.getItem('usuarios')) {
             localStorage.setItem('usuarios', JSON.stringify([{ username: 'admin', password: 'admin', role: 'admin' }]));
@@ -81,6 +115,7 @@
                     },
                     body: JSON.stringify({
                         username: username,
+                        password: password,
                         device_id: deviceId
                     })
                 });
@@ -102,7 +137,7 @@
                     
                     setTimeout(() => {
                         if (data.role === 'admin') {
-                            window.location.href = 'admin.html';
+                            window.location.href = `admin.html?session_id=${data.session_id}&device_id=${deviceId}`;
                         } else {
                             window.location.href = 'user.html';
                         }
@@ -135,7 +170,7 @@
                     
                     setTimeout(() => {
                         if (user.role === 'admin') {
-                            window.location.href = 'admin.html';
+                            window.location.href = `admin.html?session_id=${sessionUser.session_id}&device_id=${deviceId}`;
                         } else {
                             window.location.href = 'user.html';
                         }

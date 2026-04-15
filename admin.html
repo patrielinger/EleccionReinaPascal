@@ -97,6 +97,25 @@
             localStorage.setItem('candidatas', JSON.stringify(candidatas));
             localStorage.setItem('usuarios', JSON.stringify(usuarios));
             localStorage.setItem('votos', JSON.stringify(votos));
+            
+            // Guardar en servidor
+            fetch('/api/save-candidatas', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({candidatas})
+            }).catch(e => console.log('Error guardando candidatas:', e));
+            
+            fetch('/api/save-usuarios', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({usuarios})
+            }).catch(e => console.log('Error guardando usuarios:', e));
+            
+            fetch('/api/save-votos', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({votos})
+            }).catch(e => console.log('Error guardando votos:', e));
         }
 
         function loadRanking() {
@@ -142,7 +161,7 @@
             document.getElementById('candidatasGridAdmin').innerHTML = html;
         }
 
-        document.getElementById('addCandidataForm').addEventListener('submit', (e) => {
+        document.getElementById('addCandidataForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const nombre = document.getElementById('nombre').value;
             const ano = document.getElementById('ano').value;
@@ -151,15 +170,23 @@
             const numero = document.getElementById('numero').value;
             const foto = document.getElementById('foto').files[0];
             if (foto) {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const candidata = { id: Date.now(), nombre, ano, descripcion, cancion, numero, foto: reader.result };
-                    candidatas.push(candidata);
-                    saveData();
-                    loadCandidatas();
-                    e.target.reset();
-                };
-                reader.readAsDataURL(foto);
+                const formData = new FormData();
+                formData.append('foto', foto);
+                formData.append('numero', numero);
+                const response = await fetch('/api/upload-candidata-foto', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    alert('Error guardando la imagen de la candidata');
+                    return;
+                }
+                const candidata = { id: Date.now(), nombre, ano, descripcion, cancion, numero, foto: result.foto };
+                candidatas.push(candidata);
+                saveData();
+                loadCandidatas();
+                e.target.reset();
             }
         });
 
@@ -172,6 +199,7 @@
             saveData();
             loadCandidatas();
         }
+        window.eliminarCandidata = eliminarCandidata;
 
         function loadUsuarios() {
             const users = usuarios.filter(u => u.role !== 'admin');
@@ -198,6 +226,7 @@
             saveData();
             loadUsuarios();
         }
+        window.eliminarUsuario = eliminarUsuario;
 
         loadCandidatas();
         loadUsuarios();
