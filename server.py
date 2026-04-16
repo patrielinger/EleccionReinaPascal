@@ -7,10 +7,10 @@ import json
 import ipaddress
 import uuid
 import time
-import cgi
 import shutil
 from urllib.parse import urlparse
 import sys
+import re
 
 PORT = 3000
 ALLOWED_EXTENSIONS = {'.html', '.css', '.js', '.json', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico'}
@@ -132,7 +132,100 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_json(400, {'error': str(e)})
                 return True
         
+        elif path == '/api/get-network-info':
+            try:
+                client_ip = self.client_address[0]
+                server_ip = get_local_ip()
+                self.send_json(200, {
+                    'success': True,
+                    'server_ip': server_ip,
+                    'client_ip': client_ip,
+                    'port': PORT
+                })
+                return True
+            except Exception as e:
+                self.send_json(400, {'error': str(e)})
+                return True
+        
         return False
+    
+    def handle_upload_candidata_foto(self, content_type, content_length):
+        """Maneja carga de archivo de foto de candidata"""
+        try:
+            if 'multipart/form-data' not in content_type:
+                self.send_json(400, {'error': 'Content-Type debe ser multipart/form-data'})
+                return
+            
+            # Extraer boundary
+            boundary_match = re.search(r'boundary=([^\s;]+)', content_type)
+            if not boundary_match:
+                self.send_json(400, {'error': 'Boundary no encontrado en Content-Type'})
+                return
+            boundary = boundary_match.group(1).strip('"')
+            
+            # Leer datos
+            body = self.rfile.read(content_length)
+            
+            # Parsear campos multipart simple
+            parts = body.split(f'--{boundary}'.encode())
+            numero = None
+            file_data = None
+            filename = None
+            
+            for part in parts:
+                if b'Content-Disposition:' not in part:
+                    continue
+                    
+                headers_end = part.find(b'\r\n\r\n')
+                if headers_end == -1:
+                    headers_end = part.find(b'\n\n')
+                    if headers_end == -1:
+                        continue
+                    payload = part[headers_end+2:]
+                else:
+                    payload = part[headers_end+4:]
+                
+                # Remover trailing boundary
+                if payload.endswith(b'\r\n'):
+                    payload = payload[:-2]
+                elif payload.endswith(b'\n'):
+                    payload = payload[:-1]
+                
+                # Extraer nombre del campo
+                name_match = re.search(rb'name="([^"]+)"', part[:headers_end])
+                if not name_match:
+                    continue
+                    
+                field_name = name_match.group(1).decode('utf-8')
+                
+                if field_name == 'numero':
+                    numero = payload.decode('utf-8').strip()
+                elif field_name == 'foto':
+                    filename_match = re.search(rb'filename="([^"]+)"', part[:headers_end])
+                    if filename_match:
+                        filename = filename_match.group(1).decode('utf-8')
+                        file_data = payload
+            
+            if not filename or not numero or not file_data:
+                self.send_json(400, {'error': 'Falta foto o número de candidata'})
+                return
+            
+            ext = os.path.splitext(filename)[1].lower()
+            if ext not in ['.png', '.jpg', '.jpeg', '.gif', '.svg']:
+                self.send_json(400, {'error': 'Extensión de imagen no permitida'})
+                return
+            
+            safe_filename = f"{numero}{ext}"
+            img_dir = os.path.join(os.getcwd(), 'img')
+            os.makedirs(img_dir, exist_ok=True)
+            output_path = os.path.join(img_dir, safe_filename)
+            
+            with open(output_path, 'wb') as f:
+                f.write(file_data)
+            
+            self.send_json(200, {'success': True, 'foto': f'img/{safe_filename}'})
+        except Exception as e:
+            self.send_json(400, {'error': str(e)})
     
     def do_HEAD(self):
         parsed_path = urlparse(self.path)
@@ -227,7 +320,15 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
         parsed_path = urlparse(self.path)
         path = parsed_path.path
         
+        content_type = self.headers.get('Content-Type', '')
         content_length = int(self.headers.get('Content-Length', 0))
+        
+        # Manejo especial para upload multipart
+        if path == '/api/upload-candidata-foto':
+            self.handle_upload_candidata_foto(content_type, content_length)
+            return
+        
+        # Para otros POST, decodificar como JSON
         body = self.rfile.read(content_length).decode('utf-8')
         data = json.loads(body) if body else {}
         
@@ -253,35 +354,6 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_json(200, {'success': True})
             except Exception as e:
                 self.send_json(400, {'error': str(e)})
-
-        elif path == '/api/upload-candidata-foto':
-            try:
-                ctype, pdict = cgi.parse_header(self.headers.get('Content-Type', ''))
-                if ctype != 'multipart/form-data':
-                    self.send_json(400, {'error': 'Content-Type debe ser multipart/form-data'})
-                    return
-                pdict['boundary'] = bytes(pdict['boundary'], 'utf-8')
-                pdict['CONTENT-LENGTH'] = int(self.headers.get('Content-Length', 0))
-                form = cgi.FieldStorage(fp=self.rfile, headers=self.headers, environ={'REQUEST_METHOD':'POST'}, keep_blank_values=True)
-                file_field = form['foto'] if 'foto' in form else None
-                numero = form.getvalue('numero')
-                if not file_field or not numero:
-                    self.send_json(400, {'error': 'Falta foto o número de candidata'})
-                    return
-                filename = file_field.filename
-                ext = os.path.splitext(filename)[1].lower()
-                if ext not in ['.png', '.jpg', '.jpeg', '.gif', '.svg']:
-                    self.send_json(400, {'error': 'Extensión de imagen no permitida'})
-                    return
-                safe_filename = f"{numero}{ext}"
-                img_dir = os.path.join(os.getcwd(), 'img')
-                os.makedirs(img_dir, exist_ok=True)
-                output_path = os.path.join(img_dir, safe_filename)
-                with open(output_path, 'wb') as out_file:
-                    shutil.copyfileobj(file_field.file, out_file)
-                self.send_json(200, {'success': True, 'foto': f'img/{safe_filename}'})
-            except Exception as e:
-                self.send_json(400, {'error': str(e)})
         
         elif path == '/api/login':
             try:
@@ -292,9 +364,31 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
                 
                 user = next((u for u in usuarios if u['username'] == username and u['password'] == password), None)
                 if user:
-                    # Eliminar sesiones anteriores del mismo usuario
-                    sessions_to_remove = [sid for sid, s in ACTIVE_SESSIONS.items() if s['username'] == username]
-                    for sid in sessions_to_remove:
+                    # Comprobar sesiones activas del mismo usuario
+                    active_sessions = []
+                    expired_sessions = []
+                    for sid, s in list(ACTIVE_SESSIONS.items()):
+                        if s['username'] == username:
+                            if time.time() - s['timestamp'] > SESSION_TIMEOUT:
+                                expired_sessions.append(sid)
+                            else:
+                                active_sessions.append((sid, s))
+                    for sid in expired_sessions:
+                        del ACTIVE_SESSIONS[sid]
+                    
+                    # Si ya hay otra sesión en dispositivo distinto, bloquear
+                    other_device_sessions = [s for sid, s in active_sessions if s['device_id'] != device_id]
+                    if other_device_sessions:
+                        self.send_json(403, {
+                            'success': False,
+                            'error': 'Este usuario ya está conectado desde otro dispositivo',
+                            'allowed_devices': 0
+                        })
+                        return
+                    
+                    # Si existe sesión con el mismo dispositivo, eliminarla para crear nueva
+                    same_device_sessions = [sid for sid, s in active_sessions if s['device_id'] == device_id]
+                    for sid in same_device_sessions:
                         del ACTIVE_SESSIONS[sid]
                     
                     # Generar session_id único

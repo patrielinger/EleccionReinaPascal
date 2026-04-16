@@ -22,7 +22,7 @@
                 <textarea id="descripcion" placeholder="Descripción" required></textarea>
                 <input type="text" id="cancion" placeholder="Canción elegida" required>
                 <input type="number" id="numero" placeholder="Número de candidata" required>
-                <input type="file" id="foto" accept="image/*" required>
+                <input type="file" id="foto" accept="image/*">
                 <button type="submit">Agregar Candidata</button>
             </form>
         </div>
@@ -169,6 +169,8 @@
             const cancion = document.getElementById('cancion').value;
             const numero = document.getElementById('numero').value;
             const foto = document.getElementById('foto').files[0];
+            
+            let fotoUrl = null;
             if (foto) {
                 const formData = new FormData();
                 formData.append('foto', foto);
@@ -182,12 +184,15 @@
                     alert('Error guardando la imagen de la candidata');
                     return;
                 }
-                const candidata = { id: Date.now(), nombre, ano, descripcion, cancion, numero, foto: result.foto };
-                candidatas.push(candidata);
-                saveData();
-                loadCandidatas();
-                e.target.reset();
+                fotoUrl = result.foto;
             }
+            
+            const candidata = { id: Date.now(), nombre, ano, descripcion, cancion, numero, foto: fotoUrl };
+            candidatas.push(candidata);
+            saveData();
+            loadCandidatas();
+            e.target.reset();
+            alert('Candidata agregada correctamente');
         });
 
         function eliminarCandidata(id) {
