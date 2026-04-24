@@ -214,6 +214,25 @@ button:hover {
     background: #c82333;
 }
 
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.button-group button {
+    flex: 1;
+    margin: 0;
+}
+
+#deleteVoteBtn {
+    background: #dc3545;
+}
+
+#deleteVoteBtn:hover {
+    background: #c82333;
+}
+
 @media (orientation: portrait) or (max-width: 1024px) {
     #admin-forms {
         flex-direction: column;

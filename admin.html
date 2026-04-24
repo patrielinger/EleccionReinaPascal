@@ -119,17 +119,22 @@
         }
 
         function loadRanking() {
-            const ranking = { reina: {}, princesa: {}, dama: {} };
+            const categories = ['Reina', 'Primera Princesa', 'Segunda Princesa', 'Primera Dama de Honor', 'Segunda Dama de Honor'];
+            const ranking = {};
+            categories.forEach(cat => ranking[cat] = {});
+            
             for (const userVotes of Object.values(votos)) {
-                for (const [candId, cat] of Object.entries(userVotes)) {
+                for (const [cat, candId] of Object.entries(userVotes)) {
                     if (!ranking[cat][candId]) ranking[cat][candId] = 0;
                     ranking[cat][candId]++;
                 }
             }
+            
             let html = '';
-            for (const [cat, counts] of Object.entries(ranking)) {
+            categories.forEach(cat => {
+                const counts = ranking[cat] || {};
                 const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-                html += `<h3>${cat.charAt(0).toUpperCase() + cat.slice(1)}</h3><ul>`;
+                html += `<h3>${cat}</h3><ul>`;
                 sorted.forEach(([id, count]) => {
                     const candidata = candidatas.find(c => c.id == id);
                     if (candidata) {
@@ -137,7 +142,7 @@
                     }
                 });
                 html += '</ul>';
-            }
+            });
             document.getElementById('rankingContent').innerHTML = html;
         }
 
@@ -199,7 +204,11 @@
             candidatas = candidatas.filter(c => c.id != id);
             // Limpiar votos de esta candidata en todos los usuarios
             for (const user in votos) {
-                delete votos[user][id];
+                for (const [cat, candId] of Object.entries(votos[user])) {
+                    if (candId == id) {
+                        delete votos[user][cat];
+                    }
+                }
             }
             saveData();
             loadCandidatas();

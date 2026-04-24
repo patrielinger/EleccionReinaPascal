@@ -11,10 +11,14 @@ import shutil
 from urllib.parse import urlparse
 import sys
 import re
+import logging
+from datetime import datetime
+from io import StringIO
 
 PORT = 3000
 ALLOWED_EXTENSIONS = {'.html', '.css', '.js', '.json', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico'}
 ACTIVE_SESSIONS = {}
+CONNECTED_IPS = set()  # Para rastrear IPs conectadas
 SESSION_TIMEOUT = 3600
 
 # Crear directorio datos
@@ -35,6 +39,21 @@ def load_candidatas():
     return []
 
 def save_candidatas(candidatas):
+    # Cargar candidatas anteriores para comparar
+    anteriores = load_candidatas()
+    anteriores_dict = {c['id']: c for c in anteriores}
+    nuevas_dict = {c['id']: c for c in candidatas}
+    
+    # Detectar candidatas agregadas
+    for cid, candidata in nuevas_dict.items():
+        if cid not in anteriores_dict:
+            logging.info(f"➕ Candidata AGREGADA: ID={cid}, Nombre='{candidata.get('nombre', 'N/A')}'")
+    
+    # Detectar candidatas eliminadas
+    for cid, candidata in anteriores_dict.items():
+        if cid not in nuevas_dict:
+            logging.info(f"➖ Candidata ELIMINADA: ID={cid}, Nombre='{candidata.get('nombre', 'N/A')}'")
+    
     with open(CANDIDATAS_FILE, 'w') as f:
         json.dump(candidatas, f, indent=2)
 
@@ -48,6 +67,21 @@ def load_usuarios():
     return [{'username': 'admin', 'password': 'admin', 'role': 'admin'}]
 
 def save_usuarios(usuarios):
+    # Cargar usuarios anteriores para comparar
+    anteriores = load_usuarios()
+    anteriores_dict = {u['username']: u for u in anteriores}
+    nuevas_dict = {u['username']: u for u in usuarios}
+    
+    # Detectar usuarios agregados
+    for username, usuario in nuevas_dict.items():
+        if username not in anteriores_dict:
+            logging.info(f"👤 Usuario AGREGADO: '{username}' (Rol: {usuario.get('role', 'user')})")
+    
+    # Detectar usuarios eliminados
+    for username, usuario in anteriores_dict.items():
+        if username not in nuevas_dict:
+            logging.info(f"👤 Usuario ELIMINADO: '{username}' (Rol: {usuario.get('role', 'user')})")
+    
     with open(USUARIOS_FILE, 'w') as f:
         json.dump(usuarios, f, indent=2)
 
@@ -61,6 +95,31 @@ def load_votos():
     return {}
 
 def save_votos(votos):
+    # Cargar votos anteriores para comparar
+    anteriores = load_votos()
+    
+    # Detectar nuevos votos o cambios
+    for username, user_votes in votos.items():
+        prev_user_votes = anteriores.get(username, {})
+        
+        for categoria, candidata_id in user_votes.items():
+            prev_candidata_id = prev_user_votes.get(categoria)
+            
+            if prev_candidata_id != candidata_id:
+                # Encontrar nombre de la candidata
+                candidatas = load_candidatas()
+                candidata = next((c for c in candidatas if c['id'] == candidata_id), None)
+                candidata_nombre = candidata['nombre'] if candidata else f"ID:{candidata_id}"
+                
+                if prev_candidata_id is None:
+                    logging.info(f"🗳️ VOTO NUEVO: Usuario '{username}' votó en '{categoria}' → Candidata '{candidata_nombre}'")
+                else:
+                    # Encontrar nombre de la candidata anterior
+                    prev_candidata = next((c for c in candidatas if c['id'] == prev_candidata_id), None)
+                    prev_candidata_nombre = prev_candidata['nombre'] if prev_candidata else f"ID:{prev_candidata_id}"
+                    
+                    logging.info(f"🔄 VOTO CAMBIADO: Usuario '{username}' cambió voto en '{categoria}' de '{prev_candidata_nombre}' → '{candidata_nombre}'")
+    
     with open(VOTOS_FILE, 'w') as f:
         json.dump(votos, f, indent=2)
 
@@ -255,6 +314,12 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
         
     def do_GET(self):
         client_ip = self.client_address[0]
+        
+        # Registrar nueva conexión IP
+        if client_ip not in CONNECTED_IPS:
+            CONNECTED_IPS.add(client_ip)
+            logging.info(f"🌐 IP CONECTADA: {client_ip}")
+        
         if not self.is_local_ip(client_ip):
             self.send_response(403)
             self.send_header('Content-type', 'text/html; charset=utf-8')
@@ -313,6 +378,12 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
     
     def do_POST(self):
         client_ip = self.client_address[0]
+        
+        # Registrar nueva conexión IP
+        if client_ip not in CONNECTED_IPS:
+            CONNECTED_IPS.add(client_ip)
+            logging.info(f"🌐 IP CONECTADA: {client_ip}")
+        
         if not self.is_local_ip(client_ip):
             self.send_json(403, {'error': 'Acceso denegado'})
             return
@@ -336,7 +407,7 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
             try:
                 save_candidatas(data.get('candidatas', []))
                 self.send_json(200, {'success': True})
-                print(f"✓ Candidatas guardadas")
+                logging.info(f"✓ Candidatas guardadas")
             except Exception as e:
                 self.send_json(400, {'error': str(e)})
         
@@ -344,7 +415,7 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
             try:
                 save_usuarios(data.get('usuarios', []))
                 self.send_json(200, {'success': True})
-                print(f"✓ Usuarios guardados")
+                logging.info(f"✓ Usuarios guardados")
             except Exception as e:
                 self.send_json(400, {'error': str(e)})
         
@@ -407,7 +478,7 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
                         'session_id': session_id,
                         'role': user.get('role', 'user')
                     })
-                    print(f"✓ Usuario {username} inició sesión")
+                    logging.info(f"✓ Usuario {username} inició sesión")
                     return
                 else:
                     self.send_json(401, {'error': 'Credenciales inválidas'})
@@ -448,7 +519,7 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
                 for sid in sessions_to_remove:
                     del ACTIVE_SESSIONS[sid]
                 self.send_json(200, {'success': True})
-                print(f"✓ Usuario {username} cerró sesión")
+                logging.info(f"✓ Usuario {username} cerró sesión")
                 return
             except Exception as e:
                 self.send_json(400, {'error': str(e)})
@@ -469,24 +540,61 @@ def get_local_ip():
     except Exception:
         return "127.0.0.1"  # Fallback a localhost
 
+def setup_logging():
+    """Configura el sistema de logging con archivo y consola"""
+    # Crear directorio de logs si no existe
+    logs_dir = 'logs'
+    os.makedirs(logs_dir, exist_ok=True)
+    
+    # Generar nombre de archivo con fecha y hora (DD_MM_YY_HH_MM)
+    log_filename = datetime.now().strftime('%d_%m_%y_%H_%M.log')
+    log_path = os.path.join(logs_dir, log_filename)
+    
+    # Configurar logger
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    
+    # Formato de logs
+    log_format = '%(asctime)s - %(levelname)s - %(message)s'
+    date_format = '%d/%m/%y %H:%M:%S'
+    formatter = logging.Formatter(log_format, datefmt=date_format)
+    
+    # Handler para archivo
+    file_handler = logging.FileHandler(log_path)
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    
+    # Handler para consola
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.DEBUG)
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+    
+    return log_path
+
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    
+    # Configurar logging
+    log_path = setup_logging()
     
     # Obtener IP local
     local_ip = get_local_ip()
     
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("0.0.0.0", PORT), SecureHandler) as httpd:
-        print("=" * 60)
-        print("🎓 SERVIDOR DE ELECCIONES (v2)")
-        print("=" * 60)
-        print(f"\n✓ Escuchando en puerto {PORT}")
-        print(f"✓ Solo redes locales permitidas")
-        print(f"✓ Datos persistentes en carpeta 'datos/'")
-        print(f"\n🌐 Acceso local: http://localhost:{PORT}")
-        print(f"📱 Acceso desde red: http://{local_ip}:{PORT}")
-        print(f"\n💡 Comparte la URL de red con otros dispositivos en la misma red WiFi\n")
+        logging.info("=" * 60)
+        logging.info("🎓 SERVIDOR DE ELECCIONES (v2)")
+        logging.info("=" * 60)
+        logging.info(f"\n✓ Escuchando en puerto {PORT}")
+        logging.info(f"✓ Solo redes locales permitidas")
+        logging.info(f"✓ Datos persistentes en carpeta 'datos/'")
+        logging.info(f"✓ Logs guardados en: {log_path}")
+        logging.info(f"\n🌐 Acceso local: http://localhost:{PORT}")
+        logging.info(f"📱 Acceso desde red: http://{local_ip}:{PORT}")
+        logging.info(f"\n💡 Comparte la URL de red con otros dispositivos en la misma red WiFi\n")
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
-            print("\n✓ Servidor detenido")
+            logging.info("\n✓ Servidor detenido")
