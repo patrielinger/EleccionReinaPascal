@@ -85,25 +85,30 @@
 
         function loadRanking() {
             // Calcular ranking basado en votos
-            const ranking = { reina: {}, princesa: {}, dama: {} };
+            const categories = ['Reina', 'Primera Princesa', 'Segunda Princesa', 'Primera Dama de Honor', 'Segunda Dama de Honor'];
+            const ranking = {};
+            categories.forEach(cat => ranking[cat] = {});
+            
             for (const userVotes of Object.values(votos)) {
-                for (const [candId, cat] of Object.entries(userVotes)) {
+                for (const [cat, candId] of Object.entries(userVotes)) {
                     if (!ranking[cat][candId]) ranking[cat][candId] = 0;
                     ranking[cat][candId]++;
                 }
             }
+            
             let html = '';
-            for (const [cat, counts] of Object.entries(ranking)) {
+            categories.forEach(cat => {
+                const counts = ranking[cat] || {};
                 const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-                html += `<h3>${cat.charAt(0).toUpperCase() + cat.slice(1)}</h3><ul>`;
-                sorted.slice(0, 3).forEach(([id, count]) => {
+                html += `<h3>${cat}</h3><ul>`;
+                sorted.forEach(([id, count]) => {
                     const candidata = candidatas.find(c => c.id == id);
                     if (candidata) {
                         html += `<li>${candidata.nombre} (${candidata.numero}) - ${count} votos</li>`;
                     }
                 });
                 html += '</ul>';
-            }
+            });
             document.getElementById('rankingContent').innerHTML = html;
         }
 
@@ -125,7 +130,22 @@
             const c = candidatas.find(cand => cand.id == id);
             if (c) {
                 const userVotes = votos[currentUser.username] || {};
-                const currentVote = userVotes[id] || '';
+                const categories = ['Reina', 'Primera Princesa', 'Segunda Princesa', 'Primera Dama de Honor', 'Segunda Dama de Honor'];
+                
+                // Encontrar qué categoría está votada para esta candidata
+                let votedCategory = null;
+                for (const [cat, votedId] of Object.entries(userVotes)) {
+                    if (votedId == id) {
+                        votedCategory = cat;
+                        break;
+                    }
+                }
+                
+                let optionsHtml = '';
+                categories.forEach(cat => {
+                    optionsHtml += `<label><input type="radio" name="categoria" value="${cat}" ${votedCategory === cat ? 'checked' : ''}> ${cat}</label>`;
+                });
+                
                 document.getElementById('candidataDetails').innerHTML = `
                     <img src="${c.foto || 'img/default.jpg'}" alt="${c.nombre}" style="max-width:100%">
                     <h2>${c.nombre}</h2>
@@ -135,11 +155,12 @@
                     <p><strong>Número:</strong> ${c.numero}</p>
                     <form id="voteForm">
                         <div class="vote-options">
-                            <label><input type="radio" name="categoria" value="reina" ${currentVote === 'reina' ? 'checked' : ''}> Reina</label>
-                            <label><input type="radio" name="categoria" value="princesa" ${currentVote === 'princesa' ? 'checked' : ''}> Princesa</label>
-                            <label><input type="radio" name="categoria" value="dama" ${currentVote === 'dama' ? 'checked' : ''}> Dama de Honor</label>
+                            ${optionsHtml}
                         </div>
-                        <button type="submit">Votar</button>
+                        <div class="button-group">
+                            <button type="submit">Votar</button>
+                            ${votedCategory ? `<button type="button" id="deleteVoteBtn">Eliminar Voto</button>` : ''}
+                        </div>
                     </form>
                 `;
                 modal.style.display = 'block';
@@ -150,17 +171,45 @@
                         votar(id, categoria.value);
                     }
                 });
+                
+                // Agregar evento al botón Eliminar Voto si existe
+                const deleteBtn = document.getElementById('deleteVoteBtn');
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        eliminarVoto(votedCategory);
+                    });
+                }
             }
         }
 
         function votar(candId, categoria) {
             if (!votos[currentUser.username]) votos[currentUser.username] = {};
             const userVotes = votos[currentUser.username];
-            const prevVote = userVotes[candId];
-            if (prevVote && prevVote !== categoria) {
-                // Resta el voto anterior (aunque no es necesario ya que recalculamos ranking)
+            
+            // Primero, buscar si esta candidata ya tiene un voto en otra categoría
+            // Si existe, eliminarlo (garantiza que cada candidata solo tenga UN voto por usuario)
+            for (const [cat, votedCandId] of Object.entries(userVotes)) {
+                if (votedCandId == candId && cat !== categoria) {
+                    delete userVotes[cat];
+                }
             }
-            userVotes[candId] = categoria;
+            
+            // Asignar el nuevo voto a la categoría seleccionada
+            userVotes[categoria] = candId;
+            
+            saveVotos();
+            loadRanking();
+            modal.style.display = 'none';
+        }
+
+        function eliminarVoto(categoria) {
+            if (!votos[currentUser.username]) return;
+            const userVotes = votos[currentUser.username];
+            
+            // Eliminar el voto de esta categoría
+            delete userVotes[categoria];
+            
             saveVotos();
             loadRanking();
             modal.style.display = 'none';

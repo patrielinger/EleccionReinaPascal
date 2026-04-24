@@ -1,0 +1,14 @@
+24/04/26 00:24:23 - INFO - ============================================================
+24/04/26 00:24:23 - INFO - 🎓 SERVIDOR DE ELECCIONES (v2)
+24/04/26 00:24:23 - INFO - ============================================================
+24/04/26 00:24:23 - INFO - 
+✓ Escuchando en puerto 3000
+24/04/26 00:24:23 - INFO - ✓ Solo redes locales permitidas
+24/04/26 00:24:23 - INFO - ✓ Datos persistentes en carpeta 'datos/'
+24/04/26 00:24:23 - INFO - ✓ Logs guardados en: logs/24_04_26_00_24.log
+24/04/26 00:24:23 - INFO - 
+🌐 Acceso local: http://localhost:3000
+24/04/26 00:24:23 - INFO - 📱 Acceso desde red: http://192.168.0.107:3000
+24/04/26 00:24:23 - INFO - 
+💡 Comparte la URL de red con otros dispositivos en la misma red WiFi
+
