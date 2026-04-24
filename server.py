@@ -19,7 +19,7 @@ PORT = 3000
 ALLOWED_EXTENSIONS = {'.html', '.css', '.js', '.json', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico'}
 ACTIVE_SESSIONS = {}
 CONNECTED_IPS = set()  # Para rastrear IPs conectadas
-SESSION_TIMEOUT = 3600
+
 
 # Crear directorio datos
 DATA_DIR = 'datos'
@@ -436,16 +436,7 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
                 user = next((u for u in usuarios if u['username'] == username and u['password'] == password), None)
                 if user:
                     # Comprobar sesiones activas del mismo usuario
-                    active_sessions = []
-                    expired_sessions = []
-                    for sid, s in list(ACTIVE_SESSIONS.items()):
-                        if s['username'] == username:
-                            if time.time() - s['timestamp'] > SESSION_TIMEOUT:
-                                expired_sessions.append(sid)
-                            else:
-                                active_sessions.append((sid, s))
-                    for sid in expired_sessions:
-                        del ACTIVE_SESSIONS[sid]
+                    active_sessions = [(sid, s) for sid, s in ACTIVE_SESSIONS.items() if s['username'] == username]
                     
                     # Si ya hay otra sesión en dispositivo distinto, bloquear
                     other_device_sessions = [s for sid, s in active_sessions if s['device_id'] != device_id]
@@ -495,15 +486,9 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
                 
                 session = ACTIVE_SESSIONS.get(session_id)
                 if session and session['username'] == username and session['device_id'] == device_id:
-                    # Verificar timeout
-                    if time.time() - session['timestamp'] > SESSION_TIMEOUT:
-                        del ACTIVE_SESSIONS[session_id]
-                        self.send_json(200, {'valid': False})
-                        return
-                    else:
-                        session['timestamp'] = time.time()  # Actualizar timestamp
-                        self.send_json(200, {'valid': True, 'role': session.get('role', 'user')})
-                        return
+                    session['timestamp'] = time.time()
+                    self.send_json(200, {'valid': True, 'role': session.get('role', 'user')})
+                    return
                 else:
                     self.send_json(200, {'valid': False})
                     return
