@@ -9,6 +9,7 @@
 <body>
     <h1>Elecciones Reina de Colegios</h1>
     <button id="logout">Cerrar Sesión</button>
+    <div id="votingStatusBanner" style="margin: 10px 0; font-weight: bold;"></div>
     <div id="ranking">
         <h2>Ranking Actual</h2>
         <div id="rankingContent"></div>
@@ -71,6 +72,7 @@
         let currentUser;
         let candidatas = [];
         let votos = {};
+        let votingEnabled = true;
         
         function saveVotos() {
             localStorage.setItem('votos', JSON.stringify(votos));
@@ -140,19 +142,30 @@
                         break;
                     }
                 }
-                
-                let optionsHtml = '';
-                categories.forEach(cat => {
-                    optionsHtml += `<label><input type="radio" name="categoria" value="${cat}" ${votedCategory === cat ? 'checked' : ''}> ${cat}</label>`;
-                });
-                
-                document.getElementById('candidataDetails').innerHTML = `
+
+                let detailsHtml = `
                     <img src="${c.foto || 'img/default.jpg'}" alt="${c.nombre}" style="max-width:100%">
                     <h2>${c.nombre}</h2>
                     <p><strong>Año:</strong> ${c.ano}</p>
                     <p><strong>Descripción:</strong> ${c.descripcion}</p>
                     <p><strong>Canción:</strong> ${c.cancion}</p>
                     <p><strong>Número:</strong> ${c.numero}</p>
+                `;
+
+                if (!votingEnabled) {
+                    detailsHtml += `<p style="color:#f44336; font-weight:bold; margin-top:20px;">Las votaciones están bloqueadas. No se pueden cambiar votos en este momento.</p>`;
+                    document.getElementById('candidataDetails').innerHTML = detailsHtml;
+                    modal.style.display = 'block';
+                    return;
+                }
+
+                let optionsHtml = '';
+                categories.forEach(cat => {
+                    optionsHtml += `<label><input type="radio" name="categoria" value="${cat}" ${votedCategory === cat ? 'checked' : ''}> ${cat}</label>`;
+                });
+                
+                document.getElementById('candidataDetails').innerHTML = `
+                    ${detailsHtml}
                     <form id="voteForm">
                         <div class="vote-options">
                             ${optionsHtml}
@@ -233,7 +246,7 @@
                         localStorage.setItem('votos', JSON.stringify(votos));
                     }
                     
-                    displayCandidatas(candidatas);
+                            displayCandidatas(candidatas);
                     loadRanking();
                 })
                 .catch(e => {
@@ -241,6 +254,8 @@
                     displayCandidatas(candidatas);
                     loadRanking();
                 });
+
+            checkVotingStatus();
 
             // Configurar event listeners después de cargar datos
             document.getElementById('search').addEventListener('input', (e) => {
@@ -257,6 +272,24 @@
 
             closeBtn.onclick = () => modal.style.display = 'none';
             window.onclick = (e) => { if (e.target == modal) modal.style.display = 'none'; };
+        }
+
+        async function checkVotingStatus() {
+            try {
+                const response = await fetch('/api/get-voting-status');
+                const data = await response.json();
+                votingEnabled = data.voting_enabled;
+                const banner = document.getElementById('votingStatusBanner');
+                if (votingEnabled) {
+                    banner.textContent = 'Votaciones activas';
+                    banner.style.color = '#4CAF50';
+                } else {
+                    banner.textContent = 'Votaciones bloqueadas: no se pueden cambiar votos actualmente';
+                    banner.style.color = '#f44336';
+                }
+            } catch (error) {
+                console.log('Error obteniendo estado de votación:', error);
+            }
         }
 
         document.getElementById('logout').addEventListener('click', async () => {

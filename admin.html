@@ -13,6 +13,15 @@
         <h2>Ranking Actual</h2>
         <div id="rankingContent"></div>
     </div>
+    <div id="voting-controls">
+        <h2>Controles de Votación</h2>
+        <div id="voting-buttons">
+            <button id="clearVotesBtn" class="danger-btn">Eliminar Todos los Votos</button>
+            <button id="blockVotingBtn">Bloquear Votaciones</button>
+            <button id="enableVotingBtn" style="display:none;">Reactivar Votaciones</button>
+        </div>
+        <div id="votingStatus">Estado: Votaciones activas</div>
+    </div>
     <div id="admin-forms">
         <div id="candidatas">
             <h2>Agregar Candidata</h2>
@@ -92,6 +101,7 @@
             let candidatas = JSON.parse(localStorage.getItem('candidatas')) || [];
             let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
             let votos = JSON.parse(localStorage.getItem('votos')) || {};
+            let votingEnabled = true;
 
         function saveData() {
             localStorage.setItem('candidatas', JSON.stringify(candidatas));
@@ -244,6 +254,103 @@
 
         loadCandidatas();
         loadUsuarios();
+        checkVotingStatus();
+
+        document.getElementById('clearVotesBtn').addEventListener('click', async () => {
+            if (confirm('¿Estás seguro de que quieres eliminar TODOS los votos? Esta acción no se puede deshacer.')) {
+                try {
+                    const response = await fetch('/api/clear-all-votes', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'}
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        votos = {};
+                        saveData();
+                        loadRanking();
+                        alert('Todos los votos han sido eliminados.');
+                    } else {
+                        alert('Error al eliminar votos: ' + data.error);
+                    }
+                } catch (error) {
+                    console.log('Error eliminando votos:', error);
+                    alert('Error al eliminar votos.');
+                }
+            }
+        });
+
+        document.getElementById('blockVotingBtn').addEventListener('click', async () => {
+            if (confirm('¿Bloquear votaciones? Los usuarios no podrán votar hasta que se reactive.')) {
+                try {
+                    const response = await fetch('/api/set-voting-status', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({enabled: false})
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        votingEnabled = false;
+                        updateVotingUI(false);
+                        alert('Votaciones bloqueadas.');
+                    } else {
+                        alert('Error al bloquear votaciones: ' + data.error);
+                    }
+                } catch (error) {
+                    console.log('Error bloqueando votaciones:', error);
+                    alert('Error al bloquear votaciones.');
+                }
+            }
+        });
+
+        document.getElementById('enableVotingBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/set-voting-status', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({enabled: true})
+                });
+                const data = await response.json();
+                if (data.success) {
+                    votingEnabled = true;
+                    updateVotingUI(true);
+                    alert('Votaciones reactivadas.');
+                } else {
+                    alert('Error al reactivar votaciones: ' + data.error);
+                }
+            } catch (error) {
+                console.log('Error reactivando votaciones:', error);
+                alert('Error al reactivar votaciones.');
+            }
+        });
+
+        function updateVotingUI(enabled) {
+            const blockBtn = document.getElementById('blockVotingBtn');
+            const enableBtn = document.getElementById('enableVotingBtn');
+            const statusDiv = document.getElementById('votingStatus');
+
+            if (enabled) {
+                blockBtn.style.display = 'inline-block';
+                enableBtn.style.display = 'none';
+                statusDiv.textContent = 'Estado: Votaciones activas';
+                statusDiv.style.color = '#4CAF50';
+            } else {
+                blockBtn.style.display = 'none';
+                enableBtn.style.display = 'inline-block';
+                statusDiv.textContent = 'Estado: Votaciones bloqueadas';
+                statusDiv.style.color = '#f44336';
+            }
+        }
+
+        async function checkVotingStatus() {
+            try {
+                const response = await fetch('/api/get-voting-status');
+                const data = await response.json();
+                votingEnabled = data.voting_enabled;
+                updateVotingUI(votingEnabled);
+            } catch (error) {
+                console.log('Error obteniendo estado de votación:', error);
+            }
+        }
 
         document.getElementById('logout').addEventListener('click', async () => {
             const currentUser = JSON.parse(localStorage.getItem('currentUser'));

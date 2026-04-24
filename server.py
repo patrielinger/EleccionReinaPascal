@@ -19,6 +19,7 @@ PORT = 3000
 ALLOWED_EXTENSIONS = {'.html', '.css', '.js', '.json', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico'}
 ACTIVE_SESSIONS = {}
 CONNECTED_IPS = set()  # Para rastrear IPs conectadas
+VOTING_ENABLED = True
 
 
 # Crear directorio datos
@@ -123,6 +124,11 @@ def save_votos(votos):
     with open(VOTOS_FILE, 'w') as f:
         json.dump(votos, f, indent=2)
 
+def clear_all_votes():
+    logging.info("🧹 Todos los votos han sido eliminados por el administrador")
+    with open(VOTOS_FILE, 'w') as f:
+        json.dump({}, f, indent=2)
+
 class SecureHandler(http.server.SimpleHTTPRequestHandler):
     
     def is_local_ip(self, ip_str):
@@ -185,6 +191,17 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
                     'success': True, 
                     'candidatas': candidatas,
                     'votos': votos
+                })
+                return True
+            except Exception as e:
+                self.send_json(400, {'error': str(e)})
+                return True
+        
+        elif path == '/api/get-voting-status':
+            try:
+                self.send_json(200, {
+                    'success': True,
+                    'voting_enabled': VOTING_ENABLED
                 })
                 return True
             except Exception as e:
@@ -423,6 +440,23 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
             try:
                 save_votos(data.get('votos', {}))
                 self.send_json(200, {'success': True})
+            except Exception as e:
+                self.send_json(400, {'error': str(e)})
+        
+        elif path == '/api/clear-all-votes':
+            try:
+                clear_all_votes()
+                self.send_json(200, {'success': True})
+            except Exception as e:
+                self.send_json(400, {'error': str(e)})
+        
+        elif path == '/api/set-voting-status':
+            try:
+                global VOTING_ENABLED
+                VOTING_ENABLED = bool(data.get('enabled', False))
+                state = 'activadas' if VOTING_ENABLED else 'bloqueadas'
+                logging.info(f"🔒 Votaciones {state} por el administrador")
+                self.send_json(200, {'success': True, 'voting_enabled': VOTING_ENABLED})
             except Exception as e:
                 self.send_json(400, {'error': str(e)})
         
