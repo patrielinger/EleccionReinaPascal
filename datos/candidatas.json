@@ -15,7 +15,7 @@
     "descripcion": "asdfa",
     "cancion": "adsfa",
     "numero": "4",
-    "foto": "img/4.jpg"
+    "foto": "img/4.png"
   },
   {
     "id": 1777001180276,
@@ -25,32 +25,5 @@
     "cancion": "eqw",
     "numero": "26",
     "foto": "img/26.png"
-  },
-  {
-    "id": 1777058602907,
-    "nombre": "Maria",
-    "ano": "5",
-    "descripcion": "hla",
-    "cancion": "Maluma",
-    "numero": "16",
-    "foto": "img/16.jpg"
-  },
-  {
-    "id": 1777058776873,
-    "nombre": "Valentina",
-    "ano": "5",
-    "descripcion": "jda",
-    "cancion": "Ozuna",
-    "numero": "6",
-    "foto": "img/6.jpg"
-  },
-  {
-    "id": 1777058839621,
-    "nombre": "Noah",
-    "ano": "4",
-    "descripcion": "af",
-    "cancion": "das",
-    "numero": "5",
-    "foto": "img/5.jpg"
   }
 ]

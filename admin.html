@@ -77,7 +77,6 @@
                 if (!data.valid) {
                     // Sesión inválida - otro dispositivo está usando esta cuenta
                     localStorage.removeItem('currentUser');
-                    console.log('Mostrando alerta de sesión expirada');
                     alert('⚠️ Sesión expirada: Tu usuario está conectado desde otro dispositivo');
                     window.location.href = 'index.html';
                     return false;
@@ -197,7 +196,6 @@
                 });
                 const result = await response.json();
                 if (!response.ok || !result.success) {
-                    console.log('Mostrando alerta de error guardando imagen');
                     alert('Error guardando la imagen de la candidata');
                     return;
                 }
@@ -209,7 +207,6 @@
             saveData();
             loadCandidatas();
             e.target.reset();
-            console.log('Mostrando alerta: Candidata agregada correctamente');
             alert('Candidata agregada correctamente');
         });
 
@@ -258,7 +255,6 @@
         loadCandidatas();
         loadUsuarios();
         checkVotingStatus();
-        startVotingStatusPolling();
 
         document.getElementById('clearVotesBtn').addEventListener('click', async () => {
             if (confirm('¿Estás seguro de que quieres eliminar TODOS los votos? Esta acción no se puede deshacer.')) {
@@ -272,15 +268,12 @@
                         votos = {};
                         saveData();
                         loadRanking();
-                        console.log('Mostrando alerta: Todos los votos han sido eliminados.');
                         alert('Todos los votos han sido eliminados.');
                     } else {
-                        console.log('Mostrando alerta de error:', data.error);
                         alert('Error al eliminar votos: ' + data.error);
                     }
                 } catch (error) {
                     console.log('Error eliminando votos:', error);
-                    console.log('Mostrando alerta de error catch');
                     alert('Error al eliminar votos.');
                 }
             }
@@ -298,15 +291,12 @@
                     if (data.success) {
                         votingEnabled = false;
                         updateVotingUI(false);
-                        console.log('Mostrando alerta: Votaciones bloqueadas.');
                         alert('Votaciones bloqueadas.');
                     } else {
-                        console.log('Mostrando alerta de error:', data.error);
                         alert('Error al bloquear votaciones: ' + data.error);
                     }
                 } catch (error) {
                     console.log('Error bloqueando votaciones:', error);
-                    console.log('Mostrando alerta de error catch');
                     alert('Error al bloquear votaciones.');
                 }
             }
@@ -323,15 +313,12 @@
                 if (data.success) {
                     votingEnabled = true;
                     updateVotingUI(true);
-                    console.log('Mostrando alerta: Votaciones reactivadas.');
                     alert('Votaciones reactivadas.');
                 } else {
-                    console.log('Mostrando alerta de error:', data.error);
                     alert('Error al reactivar votaciones: ' + data.error);
                 }
             } catch (error) {
                 console.log('Error reactivando votaciones:', error);
-                console.log('Mostrando alerta de error catch');
                 alert('Error al reactivar votaciones.');
             }
         });
@@ -365,21 +352,7 @@
             }
         }
 
-        let votingStatusInterval;
-
-        function startVotingStatusPolling() {
-            // Verificar estado cada 2 segundos
-            votingStatusInterval = setInterval(checkVotingStatus, 2000);
-        }
-
-        function stopVotingStatusPolling() {
-            if (votingStatusInterval) {
-                clearInterval(votingStatusInterval);
-            }
-        }
-
         document.getElementById('logout').addEventListener('click', async () => {
-            stopVotingStatusPolling();
             const currentUser = JSON.parse(localStorage.getItem('currentUser'));
             try {
                 await fetch('/api/logout', {
