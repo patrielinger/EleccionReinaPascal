@@ -1,66 +1,24 @@
-# 🎓 Elecciones Reina de Colegios - Sistema de Votación Seguro
+# 🎓 Elecciones Reina - Sistema de Votación Seguro
 
-Sistema de votación digital para escuelas con acceso **exclusivamente desde red WiFi ad-hoc local**.
-
----
-
-## 🚀 Inicio Rápido
-
-### 1. Configurar la red ad-hoc (primera vez)
-
-```bash
-sudo bash crear_red_adhoc.sh
-```
-
-### 2. Iniciar el servidor
-
-```bash
-python3 server.py
-```
-
-### 3. Conectarse desde otros dispositivos
-
-- **WiFi**: `EleccionesReina`
-- **Contraseña**: `votacion2026`
-- **URL**: `http://192.168.100.1:3000`
+Sistema de votación digital diseñado para entornos educativos, con enfoque en **seguridad, control de sesiones y uso en red local**.
 
 ---
 
-## 📚 Documentación Completa
+## 📊 Estado del Proyecto
 
-Para instrucciones detalladas, ver [CONFIGURACION_RED.md](CONFIGURACION_RED.md)
+✅ Completo y funcional  
+🚀 Listo para implementación  
 
 ---
 
 ## 🔐 Características de Seguridad
 
-✓ **Acceso solo desde red local** - Sin acceso desde internet público  
-✓ **Autenticación obligatoria** - Login requerido para ingresar  
-✓ **Red ad-hoc aislada** - Conexión privada sin conectarse a internet  
-✓ **Verificación de IP** - El servidor rechaza IPs externas  
-
----
-
-## 📋 Características del Sistema
-
-### 👨‍💼 Panel de Administrador
-- Agregar/eliminar candidatas con foto y descripción
-- Gestionar usuarios del sistema
-- Ver ranking en tiempo real
-- Eliminar usuarios registrados
-
-### 🗳️ Interfaz de Votación
-- Buscar candidatas por nombre o número
-- Ver detalles de cada candidata
-- Votar por categorías: Reina, Princesa, Dama de Honor
-- Cambiar voto en cualquier momento
-- Ver ranking actualizado en vivo
-
-### 🔒 Sistema de Login
-- Autenticación de usuarios
-- Roles de administrador y usuario
-- Sesiones persistentes
-- Botón de cerrar sesión
+- Acceso restringido a **red local**
+- Bloqueo de accesos desde internet
+- Login obligatorio
+- Validación de sesión en todas las páginas
+- **Un dispositivo por usuario**
+- Expiración automática de sesiones
 
 ---
 
@@ -68,92 +26,150 @@ Para instrucciones detalladas, ver [CONFIGURACION_RED.md](CONFIGURACION_RED.md)
 
 ```
 ProgramaEleccionReina/
-├── index.html              # Página de login
-├── admin.html              # Panel de administración
-├── user.html               # Interfaz de votación
+├── index.html        # Login
+├── admin.html        # Panel de administrador
+├── user.html         # Interfaz de votación
 ├── css/
-│   └── style.css           # Estilos responsivos
-├── server.py               # Servidor seguro local
-├── iniciar_servidor.sh     # Script para iniciar servidor
-├── crear_red_adhoc.sh      # Script para crear red WiFi
-├── CONFIGURACION_RED.md    # Guía detallada de configuración
-└── README.md               # Este archivo
+│   └── style.css     # Estilos
+├── server.py         # Servidor y APIs
 ```
 
 ---
 
-## 💻 Requisitos del Sistema
+## 👨‍💼 Panel de Administrador
 
-- **Sistema Operativo**: Linux, Windows o macOS
-- **Python**: 3.6 o superior
-- **Navegador web**: Moderno (Chrome, Firefox, Edge, Safari)
-- **Tarjeta WiFi**: Compatible con modo ad-hoc (Linux)
-- **Acceso de administrador**: Para crear la red ad-hoc
+- Gestión de candidatas
+- Gestión de usuarios
+- Visualización de resultados en tiempo real
+- Eliminación de datos
 
 ---
 
-## ⚙️ Configuración Avanzada
+## 🗳️ Sistema de Votación
 
-### Cambiar puerto del servidor
+- Búsqueda de candidatas
+- Visualización de información
+- Votación por categorías:
+  - Reina
+  - Princesa
+  - Dama de Honor
+- Edición de votos
+- Ranking en vivo
 
-Edita `server.py`:
-```python
-PORT = 3000  # Cambiar número
+---
+
+## 🔒 Sistema de Sesiones
+
+### Funcionamiento
+
+Cada usuario al iniciar sesión genera:
+
+- `device_id` → Identificador único del dispositivo  
+- `session_id` → Identificador de sesión en el servidor  
+
+El servidor registra:
+
+```
+usuario → device_id + session_id + IP
 ```
 
-### Cambiar SSID o contraseña WiFi
+---
 
-Edita `crear_red_adhoc.sh`:
-```bash
-SSID="NuevoSSID"
-PASSWORD="NuevaContraseña"
+### Reglas
+
+- ❌ No se puede acceder sin login  
+- ❌ No se permite más de un dispositivo por usuario  
+- ❌ Sesiones inválidas redirigen al login  
+- ⏱️ Timeout de sesión: 1 hora  
+
+---
+
+## 🔌 API
+
+### Login
+```
+POST /api/login
 ```
 
-### Cambiar IP del servidor
+### Verificar sesión
+```
+POST /api/verify-session
+```
 
-Edita `crear_red_adhoc.sh`:
-```bash
-IP_SERVER="192.168.50.1"  # Nueva IP
+### Logout
+```
+POST /api/logout
 ```
 
 ---
 
-## 🆘 Solución de Problemas
+## 💾 Almacenamiento
 
-**P: La red ad-hoc no aparece**  
-R: Verifica que tu tarjeta WiFi esté habilitada y soporta modo ad-hoc. Ejecuta el script con `sudo`.
+**Cliente (navegador):**
+- Usuarios
+- Candidatas
+- Votos
 
-**P: "Acceso Denegado" al abrir el sitio**  
-R: El servidor solo acepta conexiones desde IPs locales. Asegúrate de estar conectado a `EleccionesReina` y usando la IP correcta: `192.168.100.1:3000`
-
-**P: El servidor no inicia**  
-R: Verifica que Python 3 esté instalado y que el puerto 3000 no esté en uso.
-
-**P: ¿Cómo restauro la configuración de WiFi normal?**  
-R: Ejecuta `sudo systemctl start NetworkManager` en Linux.
+**Servidor:**
+- Sesiones activas (en memoria)
 
 ---
 
-## 📝 Notas de Uso
+## 👥 Usuario Inicial
 
-- **Datos guardados**: Se almacenan en el navegador (localStorage)
-- **Usuario predeterminado**: admin / admin
-- **Primer login**: Recomendado cambiar contraseña del admin
-- **Datos persistentes**: Los votos y candidatas se guardan automáticamente
-- **Multi-dispositivo**: Múltiples usuarios pueden votar simultáneamente
+| Usuario | Contraseña | Rol |
+|--------|-----------|-----|
+| admin  | admin     | Administrador |
 
----
-
-## 👥 Usuarios de Ejemplo
-
-Al iniciar, el sistema crea un usuario administrador:
-
-| Usuario | Contraseña | Rol         |
-|---------|-----------|-------------|
-| admin   | admin     | Administrador |
+⚠️ Se recomienda cambiar la contraseña en el primer uso.
 
 ---
 
-**Versión**: 1.0  
-**Última actualización**: Abril 2026  
-**Licencia**: ISC
+## 📋 Flujo de Uso
+
+1. Usuario accede al sistema
+2. Inicia sesión en `index.html`
+3. Accede según rol:
+   - `admin.html`
+   - `user.html`
+4. Interactúa con el sistema
+5. La sesión es validada continuamente
+
+---
+
+## ⚠️ Problemas Comunes
+
+**Acceso denegado**
+- Fuera de red local
+- Sesión inválida
+
+**Usuario ya conectado**
+- Otro dispositivo está usando esa cuenta
+
+**Redirección al login**
+- Sesión expirada o inexistente
+
+---
+
+## 🎯 Objetivo del Proyecto
+
+Garantizar un sistema de votación:
+
+- Seguro
+- Controlado
+- Simple de usar
+- Sin dependencia de internet
+
+---
+
+## 📌 Notas
+
+- Sistema pensado para uso en eventos escolares
+- No utiliza base de datos externa
+- Arquitectura ligera y fácil de desplegar
+
+---
+
+## 📄 Licencia
+
+ISC
