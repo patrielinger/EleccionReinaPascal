@@ -2,17 +2,19 @@ body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 20px;
-    background-color: #f4f4f4;
+    background-color: #111B22;
     box-sizing: border-box;
+    color: #fff;
 }
 
 .login-container {
     max-width: 400px;
     margin: 0 auto;
     padding: 20px;
-    background: white;
+    text-align: center;
+    background: #1B2832;
     border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 input, button {
@@ -26,13 +28,75 @@ input, button {
 }
 
 button {
-    background: #007bff;
-    color: white;
+    background: #0A2538;
+    color: #35A9FD;
     cursor: pointer;
+    border: none;
+    font-weight: bold;
+    box-shadow: 0 0 5px #35A9FD;
 }
 
 button:hover {
-    background: #0056b3;
+    background: #0A2538;
+    color: #35A9FD;
+    box-shadow: 0 0 10px #35A9FD;
+}
+
+#rankingContent {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+}
+
+#ranking{
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.reina > h3{
+    color: #ff6fe7;
+    outline: 1px solid #ff6fe7;
+    width: 100%;
+    height: auto;
+    box-shadow: 0 0 10px;
+    border-radius: 5px;
+    padding: 5px;
+}
+.primera-princesa > h3{
+    color: #e6fa33;
+    outline: 1px solid #e6fa33;
+    width: 100%;
+    height: auto;
+    box-shadow: 0 0 10px;
+    border-radius: 5px;
+    padding: 5px;
+}
+.segunda-princesa > h3{
+    color: #e6fa33;
+    outline: 1px solid #e6fa33;
+    width: 100%;
+    height: auto;
+    box-shadow: 0 0 10px;
+    border-radius: 5px;
+    padding: 5px;
+}
+.primera-dama-de-honor > h3{
+    color: #1fff40;
+    outline: 1px solid #1fff40;
+    width: 100%;
+    height: auto;
+    box-shadow: 0 0 10px;
+    border-radius: 5px;
+    padding: 5px;
+}
+.segunda-dama-de-honor > h3{
+    color: #1fff40;
+    outline: 1px solid #1fff40;
+    width: 100%;
+    height: auto;
+    box-shadow: 0 0 10px;
+    border-radius: 5px;
+    padding: 5px;
 }
 
 #candidatasGrid {
@@ -43,7 +107,7 @@ button:hover {
 }
 
 .candidata-card {
-    background: white;
+    background: #1B2832;
     padding: 10px;
     border-radius: 8px;
     box-shadow: 0 0 5px rgba(0,0,0,0.1);
@@ -76,7 +140,7 @@ button:hover {
 }
 
 .modal-content {
-    background-color: #fefefe;
+    background-color: #1B2832;
     margin: 15% auto;
     padding: 20px;
     border: 1px solid #888;
@@ -84,6 +148,96 @@ button:hover {
     max-width: 500px;
     border-radius: 8px;
     box-sizing: border-box;
+    border-left: 4px solid #007bff;
+}
+
+.modal-photo {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.modal-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.candidate-number {
+    color: #35A9FD;
+    font-weight: bold;
+    font-size: 1.25rem;
+}
+
+.modal-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #555;
+    margin-bottom: 15px;
+}
+
+.details-left {
+    padding-right: 15px;
+    border-right: 1px solid #555;
+}
+
+.details-left h4,
+.details-right div {
+    margin: 0 0 10px;
+}
+
+.details-right {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    padding-left: 15px;
+}
+
+.vote-options {
+    margin-top: 10px;
+    display: grid;
+    gap: 10px;
+}
+
+.vote-options label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.05);
+    padding: 10px 12px;
+    border-radius: 6px;
+}
+
+.vote-options input[type="radio"] {
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .modal-details {
+        grid-template-columns: 1fr;
+    }
+
+    .details-left {
+        border-right: none;
+        padding-right: 0;
+        border-bottom: 1px solid #555;
+        padding-bottom: 15px;
+    }
+
+    .details-right {
+        padding-left: 0;
+    }
 }
 
 .close {
@@ -100,15 +254,26 @@ button:hover {
 
 .vote-options {
     margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* centra vertical */
+    height: 100%; /* o un alto fijo si hace falta */
+    grid-template-columns: 2 1fr;
 }
 
 .vote-options label {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     margin: 5px 0;
+    padding-right: 10px;
 }
 
 .vote-options input[type="radio"] {
-    margin-right: 10px;
+    text-align: right;
+    width: auto;
+    margin: 10px;
+    background: #000;
 }
 
 /* Media Queries para Responsive */
@@ -154,7 +319,7 @@ button:hover {
 @media (orientation: landscape) {
     /* Para pantallas horizontales (16:9) */
     #candidatasGrid {
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     }
 
     .modal-content {
@@ -186,7 +351,7 @@ button:hover {
 }
 
 .candidata-card-admin {
-    background: white;
+    background: #1B2832;
     padding: 10px;
     border-radius: 8px;
     box-shadow: 0 0 5px rgba(0,0,0,0.1);
@@ -203,6 +368,7 @@ button:hover {
 .candidata-card-admin button {
     margin-top: 5px;
     background: #dc3545;
+    box-shadow: 0 0 5px #ff0019;
     color: white;
     border: none;
     padding: 5px 10px;
@@ -227,10 +393,21 @@ button:hover {
 
 #deleteVoteBtn {
     background: #dc3545;
+    color: #fff;
+    box-shadow: 0 0 5px #ff0019;
 }
 
 #deleteVoteBtn:hover {
     background: #c82333;
+}
+
+/* Reset color inheritance for candidata-card inside category classes */
+.reina .candidata-card,
+.primera-princesa .candidata-card,
+.segunda-princesa .candidata-card,
+.primera-dama-de-honor .candidata-card,
+.segunda-dama-de-honor .candidata-card {
+    color: #fff;
 }
 
 @media (orientation: portrait) or (max-width: 1024px) {

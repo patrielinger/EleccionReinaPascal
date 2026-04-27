@@ -1,0 +1,16 @@
+27/04/26 00:38:12 - INFO - ============================================================
+27/04/26 00:38:12 - INFO - 🎓 SERVIDOR DE ELECCIONES (v2)
+27/04/26 00:38:12 - INFO - ============================================================
+27/04/26 00:38:12 - INFO - 
+✓ Escuchando en puerto 3000
+27/04/26 00:38:12 - INFO - ✓ Solo redes locales permitidas
+27/04/26 00:38:12 - INFO - ✓ Datos persistentes en carpeta 'datos/'
+27/04/26 00:38:12 - INFO - ✓ Logs guardados en: logs/27_04_26_00_38.log
+27/04/26 00:38:12 - INFO - 
+🌐 Acceso local: http://localhost:3000
+27/04/26 00:38:12 - INFO - 📱 Acceso desde red: http://192.168.0.100:3000
+27/04/26 00:38:12 - INFO - 
+💡 Comparte la URL de red con otros dispositivos en la misma red WiFi
+
+27/04/26 00:38:13 - INFO - 🌐 IP CONECTADA: 192.168.0.100
+27/04/26 00:39:09 - INFO - ✓ Usuario admin inició sesión

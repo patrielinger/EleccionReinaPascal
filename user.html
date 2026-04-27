@@ -7,11 +7,14 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+
+    <nav style="display: inline-block; width: 100%;">
     <h1>Elecciones Reina de Colegios</h1>
     <button id="logout">Cerrar Sesión</button>
-    <div id="votingStatusBanner" style="margin: 10px 0; font-weight: bold;"></div>
-    <div id="ranking">
-        <h2>Ranking Actual</h2>
+    </nav>
+
+    <div id="votingStatusBanner" style="padding: 15px 20px; margin: 20px 0; border-radius: 8px; font-weight: bold; text-align: center; font-size: 16px; display: none;"></div>
+    <div id="ranking"> <h1>Mis votos</h1>
         <div id="rankingContent"></div>
     </div>
     <input type="text" id="search" placeholder="Buscar por nombre o número">
@@ -86,30 +89,28 @@
         }
 
         function loadRanking() {
-            // Calcular ranking basado en votos
             const categories = ['Reina', 'Primera Princesa', 'Segunda Princesa', 'Primera Dama de Honor', 'Segunda Dama de Honor'];
-            const ranking = {};
-            categories.forEach(cat => ranking[cat] = {});
-            
-            for (const userVotes of Object.values(votos)) {
-                for (const [cat, candId] of Object.entries(userVotes)) {
-                    if (!ranking[cat][candId]) ranking[cat][candId] = 0;
-                    ranking[cat][candId]++;
-                }
-            }
-            
+            const userVotes = votos[currentUser.username] || {};
             let html = '';
             categories.forEach(cat => {
-                const counts = ranking[cat] || {};
-                const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-                html += `<h3>${cat}</h3><ul>`;
-                sorted.forEach(([id, count]) => {
-                    const candidata = candidatas.find(c => c.id == id);
+                const className = cat.toLowerCase().replace(/\s+/g, '-');
+                html += `<div class="${className}"><h3>${cat}</h3>`;
+                const votedId = userVotes[cat];
+                if (votedId) {
+                    const candidata = candidatas.find(c => c.id == votedId);
                     if (candidata) {
-                        html += `<li>${candidata.nombre} (${candidata.numero}) - ${count} votos</li>`;
+                        html += `
+                            <div class="candidata-card" onclick="showDetails(${candidata.id})">
+                                <img src="${candidata.foto || 'img/default.jpg'}" alt="${candidata.nombre}">
+                                <h3>${candidata.nombre}</h3>
+                                <p>Candidata: <b>${candidata.numero}</b> </p>
+                            </div>
+                        `;
                     }
-                });
-                html += '</ul>';
+                } else {
+                    html += `<p>No has votado en esta categoría</p>`;
+                }
+                html += '</div>';
             });
             document.getElementById('rankingContent').innerHTML = html;
         }
@@ -121,7 +122,7 @@
                     <div class="candidata-card" onclick="showDetails(${c.id})">
                         <img src="${c.foto || 'img/default.jpg'}" alt="${c.nombre}">
                         <h3>${c.nombre}</h3>
-                        <p>Número: ${c.numero}</p>
+                        <p>Candidata: <b>${c.numero}</b> </p>
                     </div>
                 `;
             });
@@ -144,12 +145,22 @@
                 }
 
                 let detailsHtml = `
-                    <img src="${c.foto || 'img/default.jpg'}" alt="${c.nombre}" style="max-width:100%">
-                    <h2>${c.nombre}</h2>
-                    <p><strong>Año:</strong> ${c.ano}</p>
-                    <p><strong>Descripción:</strong> ${c.descripcion}</p>
-                    <p><strong>Canción:</strong> ${c.cancion}</p>
-                    <p><strong>Número:</strong> ${c.numero}</p>
+                    <img src="${c.foto || 'img/default.jpg'}" alt="${c.nombre}" class="modal-photo">
+                    <div class="modal-header">
+                        <h2>${c.nombre}</h2>
+                        <span class="candidate-number">${c.numero}</span>
+                    </div>
+                    <div class="modal-details">
+                        <div class="details-left">
+                            <h4>Descripción</h4>
+                            <p>${c.descripcion}</p>
+                        </div>
+                        <div class="details-right">
+                            <div><strong>Canción:</strong> ${c.cancion}</div>
+                            <div><strong>Año:</strong> ${c.ano}</div>
+                        </div>
+                    </div>
+                    <br>
                 `;
 
                 if (!votingEnabled) {
@@ -161,7 +172,7 @@
 
                 let optionsHtml = '';
                 categories.forEach(cat => {
-                    optionsHtml += `<label><input type="radio" name="categoria" value="${cat}" ${votedCategory === cat ? 'checked' : ''}> ${cat}</label>`;
+                    optionsHtml += `<label>${cat} <input type="radio" name="categoria" value="${cat}" ${votedCategory === cat ? 'checked' : ''}></label>`;
                 });
                 
                 document.getElementById('candidataDetails').innerHTML = `
@@ -256,6 +267,11 @@
                 });
 
             checkVotingStatus();
+            startVotingStatusPolling();
+
+            if (window.innerWidth <= 768) {
+                initCarousel();
+            }
 
             // Configurar event listeners después de cargar datos
             document.getElementById('search').addEventListener('input', (e) => {
@@ -274,25 +290,57 @@
             window.onclick = (e) => { if (e.target == modal) modal.style.display = 'none'; };
         }
 
+        let votingStatusInterval; // Para guardar el intervalo
+
         async function checkVotingStatus() {
             try {
                 const response = await fetch('/api/get-voting-status');
                 const data = await response.json();
+                const wasEnabled = votingEnabled;
                 votingEnabled = data.voting_enabled;
+                
                 const banner = document.getElementById('votingStatusBanner');
                 if (votingEnabled) {
-                    banner.textContent = 'Votaciones activas';
-                    banner.style.color = '#4CAF50';
+                    banner.textContent = '✅ Votaciones activas';
+                    banner.style.backgroundColor = '#d4edda';
+                    banner.style.color = '#155724';
+                    banner.style.border = '2px solid #28a745';
+                    banner.style.display = 'block';
                 } else {
-                    banner.textContent = 'Votaciones bloqueadas: no se pueden cambiar votos actualmente';
-                    banner.style.color = '#f44336';
+                    banner.textContent = '🚫 Votaciones bloqueadas - No se pueden cambiar votos en este momento';
+                    banner.style.backgroundColor = '#f8d7da';
+                    banner.style.color = '#721c24';
+                    banner.style.border = '2px solid #f5c6cb';
+                    banner.style.display = 'block';
+                }
+                
+                // Detectar cambio de estado y mostrar alerta
+                if (wasEnabled !== votingEnabled) {
+                    if (!votingEnabled) {
+                        console.log('Las votaciones han sido bloqueadas');
+                    } else {
+                        console.log('Las votaciones han sido reactivadas');
+                    }
                 }
             } catch (error) {
                 console.log('Error obteniendo estado de votación:', error);
             }
         }
 
+        function startVotingStatusPolling() {
+            // Verificar estado cada 1 segundo para actualización en vivo
+            checkVotingStatus();
+            votingStatusInterval = setInterval(checkVotingStatus, 1000);
+        }
+
+        function stopVotingStatusPolling() {
+            if (votingStatusInterval) {
+                clearInterval(votingStatusInterval);
+            }
+        }
+
         document.getElementById('logout').addEventListener('click', async () => {
+            stopVotingStatusPolling();
             const currentUser = JSON.parse(localStorage.getItem('currentUser'));
             try {
                 await fetch('/api/logout', {
@@ -310,6 +358,16 @@
             localStorage.removeItem('currentUser');
             window.location.href = 'index.html';
         });
+
+        function initCarousel() {
+            const container = document.getElementById('rankingContent');
+            const items = container.children;
+            let currentIndex = 0;
+            setInterval(() => {
+                currentIndex = (currentIndex + 1) % items.length;
+                container.style.transform = `translateX(-${currentIndex * 100}%)`;
+            }, 3000);
+        }
     </script>
 </body>
 </html>
