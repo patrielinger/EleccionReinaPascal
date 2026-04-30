@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Administración</title>
     <link rel="stylesheet" href="css/style.css">
+    <style id="categoryStyles"></style>
 </head>
 <body>
     <h1>Panel de Administración</h1>
@@ -21,6 +22,15 @@
             <button id="enableVotingBtn" style="display:none;">Reactivar Votaciones</button>
         </div>
         <div id="votingStatus">Estado: Votaciones activas</div>
+    </div>
+    <div id="category-management">
+        <h2>Categorías de Votación</h2>
+        <form id="addCategoryForm" class="category-form">
+            <input type="text" id="newCategory" placeholder="Nombre de la categoría" required>
+            <input type="color" id="newCategoryColor" value="#ff6fe7" title="Selecciona un color para la categoría">
+            <button type="submit">Agregar Categoría</button>
+        </form>
+        <div id="categoryList"></div>
     </div>
     <div id="confirmationModal" class="modal">
         <div class="modal-content">
@@ -123,12 +133,90 @@
             let candidatas = JSON.parse(localStorage.getItem('candidatas')) || [];
             let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
             let votos = JSON.parse(localStorage.getItem('votos')) || {};
+            let categorias = normalizeCategories(JSON.parse(localStorage.getItem('categorias')) || []);
+            const defaultCategorias = [
+                { name: 'Reina', color: '#ff6fe7' },
+                { name: 'Primera Princesa', color: '#e6fa33' },
+                { name: 'Segunda Princesa', color: '#e6fa33' },
+                { name: 'Primera Dama de Honor', color: '#1fff40' },
+                { name: 'Segunda Dama de Honor', color: '#1fff40' }
+            ];
             let votingEnabled = true;
+
+            if (!categorias.length) {
+                categorias = defaultCategorias.slice();
+            }
+
+            function slugify(text) {
+                return String(text).toLowerCase().trim()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-+|-+$/g, '');
+            }
+
+            function normalizeCategory(category) {
+                if (!category) return null;
+                if (typeof category === 'string') {
+                    return { name: category, color: '#ff6fe7' };
+                }
+                if (typeof category === 'object' && category.name) {
+                    return {
+                        name: String(category.name).trim(),
+                        color: category.color || '#ff6fe7'
+                    };
+                }
+                return null;
+            }
+
+            function normalizeCategories(raw) {
+                if (!Array.isArray(raw)) return [];
+                return raw.map(normalizeCategory).filter(Boolean);
+            }
+
+            function updateCategoryStyles() {
+                const styleEl = document.getElementById('categoryStyles');
+                if (!styleEl) return;
+                const styles = categorias.map(cat => {
+                    const selector = slugify(cat.name);
+                    return `.${selector} > h3 { color: ${cat.color}; outline: 1px solid ${cat.color}; box-shadow: 0 0 10px ${cat.color}; width: 100%; height: auto; border-radius: 5px; padding: 5px; }`;
+                }).join('\n');
+                styleEl.textContent = styles;
+            }
+
+            fetch('/api/load-data')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.candidatas) {
+                        candidatas = data.candidatas;
+                        localStorage.setItem('candidatas', JSON.stringify(candidatas));
+                    }
+                    if (data.votos) {
+                        votos = data.votos;
+                        localStorage.setItem('votos', JSON.stringify(votos));
+                    }
+                    if (data.categorias) {
+                        categorias = normalizeCategories(data.categorias);
+                        localStorage.setItem('categorias', JSON.stringify(categorias));
+                    }
+                    updateCategoryStyles();
+                    renderCategoryList();
+                    loadCandidatas();
+                    loadUsuarios();
+                })
+                .catch(e => {
+                    console.log('Error cargando datos del servidor:', e);
+                    updateCategoryStyles();
+                    renderCategoryList();
+                    loadCandidatas();
+                    loadUsuarios();
+                });
 
         function saveData() {
             localStorage.setItem('candidatas', JSON.stringify(candidatas));
             localStorage.setItem('usuarios', JSON.stringify(usuarios));
             localStorage.setItem('votos', JSON.stringify(votos));
+            localStorage.setItem('categorias', JSON.stringify(categorias));
             
             // Guardar en servidor
             fetch('/api/save-candidatas', {
@@ -148,6 +236,67 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({votos})
             }).catch(e => console.log('Error guardando votos:', e));
+            
+            fetch('/api/save-categorias', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({categorias})
+            }).catch(e => console.log('Error guardando categorías:', e));
+        }
+
+        function renderCategoryList() {
+            const list = document.getElementById('categoryList');
+            if (!categorias.length) {
+                list.innerHTML = '<p>No hay categorías definidas.</p>';
+                return;
+            }
+            list.innerHTML = categorias.map(cat => `
+                <div class="category-item">
+                    <span><span class="category-swatch" style="background:${cat.color}"></span>${cat.name}</span>
+                    <button type="button" class="delete-category-btn" data-category="${cat.name}">Eliminar</button>
+                </div>
+            `).join('');
+
+            list.querySelectorAll('.delete-category-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const category = btn.getAttribute('data-category');
+                    deleteCategory(category);
+                });
+            });
+        }
+
+        function addCategory(categoryName) {
+            const normalized = categoryName.trim();
+            const color = document.getElementById('newCategoryColor').value || '#ff6fe7';
+            if (!normalized) {
+                showMessageModal('Ingresa un nombre de categoría válido.', 'Error');
+                return;
+            }
+            if (categorias.some(cat => cat.name.toLowerCase() === normalized.toLowerCase())) {
+                showMessageModal('La categoría ya existe.', 'Error');
+                return;
+            }
+            categorias.push({ name: normalized, color });
+            saveData();
+            updateCategoryStyles();
+            renderCategoryList();
+            showMessageModal(`Categoría '${normalized}' agregada.`, 'Éxito');
+        }
+
+        async function deleteCategory(categoryName) {
+            const confirmed = await openConfirmationModal(`¿Eliminar la categoría "${categoryName}"? Esto también borrará los votos asociados a esa categoría.`, true);
+            if (!confirmed) return;
+            categorias = categorias.filter(cat => cat.name !== categoryName);
+            for (const user in votos) {
+                if (votos[user] && votos[user][categoryName]) {
+                    delete votos[user][categoryName];
+                }
+            }
+            saveData();
+            updateCategoryStyles();
+            renderCategoryList();
+            loadRanking();
+            showMessageModal(`Categoría '${categoryName}' eliminada.`, 'Éxito');
         }
 
         function openConfirmationModal(message, isDangerous = false) {
@@ -203,6 +352,37 @@
             });
         }
 
+        async function clearAllVotes() {
+            const response = await fetch('/api/clear-all-votes', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            });
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.error || 'No se pudo eliminar los votos.');
+            }
+            votos = {};
+            saveData();
+            loadRanking();
+            showMessageModal('Todos los votos han sido eliminados.', 'Éxito');
+        }
+
+        async function setVotingEnabled(enabled) {
+            const response = await fetch('/api/set-voting-status', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({enabled})
+            });
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.error || 'No se pudo actualizar el estado de votación.');
+            }
+            votingEnabled = enabled;
+            updateVotingUI(enabled);
+            const message = enabled ? 'Votaciones reactivadas.' : 'Votaciones bloqueadas.';
+            showMessageModal(message, 'Éxito');
+        }
+
         function showMessageModal(message, title = 'Aviso') {
             const modal = document.getElementById('messageModal');
             document.getElementById('messageModalTitle').textContent = title;
@@ -228,12 +408,13 @@
         }
 
         function loadRanking() {
-            const categories = ['Reina', 'Primera Princesa', 'Segunda Princesa', 'Primera Dama de Honor', 'Segunda Dama de Honor'];
+            const categories = categorias.length ? categorias : defaultCategorias;
             const ranking = {};
-            categories.forEach(cat => ranking[cat] = {});
+            categories.forEach(cat => ranking[cat.name] = {});
             
             for (const userVotes of Object.values(votos)) {
                 for (const [cat, candId] of Object.entries(userVotes)) {
+                    if (!ranking[cat]) ranking[cat] = {};
                     if (!ranking[cat][candId]) ranking[cat][candId] = 0;
                     ranking[cat][candId]++;
                 }
@@ -241,16 +422,17 @@
             
             let html = '';
             categories.forEach(cat => {
-                const counts = ranking[cat] || {};
+                const counts = ranking[cat.name] || {};
                 const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-                html += `<h3>${cat}</h3><ul>`;
+                const className = slugify(cat.name);
+                html += `<div class="${className}"><h3>${cat.name}</h3><ul>`;
                 sorted.forEach(([id, count]) => {
                     const candidata = candidatas.find(c => c.id == id);
                     if (candidata) {
                         html += `<li>${candidata.nombre} (${candidata.numero}) - ${count} votos</li>`;
                     }
                 });
-                html += '</ul>';
+                html += '</ul></div>';
             });
             document.getElementById('rankingContent').innerHTML = html;
         }
@@ -345,6 +527,13 @@
             e.target.reset();
         });
 
+        document.getElementById('addCategoryForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('newCategory').value;
+            addCategory(name);
+            e.target.reset();
+        });
+
         function eliminarUsuario(username) {
             usuarios = usuarios.filter(u => u.username !== username);
             delete votos[username];
@@ -353,9 +542,12 @@
         }
         window.eliminarUsuario = eliminarUsuario;
 
+        renderCategoryList();
         loadCandidatas();
         loadUsuarios();
         checkVotingStatus();
+
+        let votingStatusInterval;
         startVotingStatusPolling();
 
         document.getElementById('clearVotesBtn').addEventListener('click', async () => {
@@ -363,21 +555,7 @@
             if (!confirmed) return;
 
             try {
-                const response = await fetch('/api/clear-all-votes', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'}
-                });
-                const data = await response.json();
-                if (data.success) {
-                    votos = {};
-                    saveData();
-                    loadRanking();
-                    console.log('Todos los votos han sido eliminados.');
-                    showMessageModal('Todos los votos han sido eliminados.', 'Éxito');
-                } else {
-                    console.log('Error al eliminar votos:', data.error);
-                    showMessageModal('Error al eliminar votos: ' + data.error, 'Error');
-                }
+                await clearAllVotes();
             } catch (error) {
                 console.log('Error eliminando votos:', error);
                 showMessageModal('Error al eliminar votos.', 'Error');
@@ -389,21 +567,7 @@
             if (!confirmed) return;
 
             try {
-                const response = await fetch('/api/set-voting-status', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({enabled: false})
-                });
-                const data = await response.json();
-                if (data.success) {
-                    votingEnabled = false;
-                    updateVotingUI(false);
-                    console.log('Votaciones bloqueadas.');
-                    showMessageModal('Votaciones bloqueadas.', 'Éxito');
-                } else {
-                    console.log('Error al bloquear votaciones:', data.error);
-                    showMessageModal('Error al bloquear votaciones: ' + data.error, 'Error');
-                }
+                await setVotingEnabled(false);
             } catch (error) {
                 console.log('Error bloqueando votaciones:', error);
                 showMessageModal('Error al bloquear votaciones.', 'Error');
@@ -412,25 +576,10 @@
 
         document.getElementById('enableVotingBtn').addEventListener('click', async () => {
             try {
-                const response = await fetch('/api/set-voting-status', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({enabled: true})
-                });
-                const data = await response.json();
-                if (data.success) {
-                    votingEnabled = true;
-                    updateVotingUI(true);
-                    console.log('Mostrando alerta: Votaciones reactivadas.');
-                    alert('Votaciones reactivadas.');
-                } else {
-                    console.log('Mostrando alerta de error:', data.error);
-                    alert('Error al reactivar votaciones: ' + data.error);
-                }
+                await setVotingEnabled(true);
             } catch (error) {
                 console.log('Error reactivando votaciones:', error);
-                console.log('Mostrando alerta de error catch');
-                alert('Error al reactivar votaciones.');
+                showMessageModal('Error al reactivar votaciones.', 'Error');
             }
         });
 
@@ -462,14 +611,6 @@
                 console.log('Error obteniendo estado de votación:', error);
             }
         }
-
-        function startVotingStatusPolling() {
-            // Verificar estado cada 1 segundo para actualización en vivo
-            checkVotingStatus();
-            votingStatusInterval = setInterval(checkVotingStatus, 1000);
-        }
-
-        let votingStatusInterval;
 
         function startVotingStatusPolling() {
             // Verificar estado cada 2 segundos

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Votación</title>
     <link rel="stylesheet" href="css/style.css">
+    <style id="categoryStyles"></style>
 </head>
 <body>
 
@@ -75,7 +76,15 @@
         let currentUser;
         let candidatas = [];
         let votos = {};
+        let categorias = [];
         let votingEnabled = true;
+        const defaultCategorias = [
+            { name: 'Reina', color: '#ff6fe7' },
+            { name: 'Primera Princesa', color: '#e6fa33' },
+            { name: 'Segunda Princesa', color: '#e6fa33' },
+            { name: 'Primera Dama de Honor', color: '#1fff40' },
+            { name: 'Segunda Dama de Honor', color: '#1fff40' }
+        ];
         
         function saveVotos() {
             localStorage.setItem('votos', JSON.stringify(votos));
@@ -88,14 +97,51 @@
             }).catch(e => console.log('Error guardando votos:', e));
         }
 
+        function slugify(text) {
+            return String(text).toLowerCase().trim()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '');
+        }
+
+        function normalizeCategory(category) {
+            if (!category) return null;
+            if (typeof category === 'string') {
+                return { name: category, color: '#ff6fe7' };
+            }
+            if (typeof category === 'object' && category.name) {
+                return {
+                    name: String(category.name).trim(),
+                    color: category.color || '#ff6fe7'
+                };
+            }
+            return null;
+        }
+
+        function normalizeCategories(raw) {
+            if (!Array.isArray(raw)) return [];
+            return raw.map(normalizeCategory).filter(Boolean);
+        }
+
+        function updateCategoryStyles() {
+            const styleEl = document.getElementById('categoryStyles');
+            if (!styleEl) return;
+            const styles = categorias.map(cat => {
+                const selector = slugify(cat.name);
+                return `.${selector} > h3 { color: ${cat.color}; outline: 1px solid ${cat.color}; box-shadow: 0 0 10px ${cat.color}; width: 100%; height: auto; border-radius: 5px; padding: 5px; }`;
+            }).join('\n');
+            styleEl.textContent = styles;
+        }
+
         function loadRanking() {
-            const categories = ['Reina', 'Primera Princesa', 'Segunda Princesa', 'Primera Dama de Honor', 'Segunda Dama de Honor'];
+            const categories = categorias.length ? categorias : defaultCategorias;
             const userVotes = votos[currentUser.username] || {};
             let html = '';
             categories.forEach(cat => {
-                const className = cat.toLowerCase().replace(/\s+/g, '-');
-                html += `<div class="${className}"><h3>${cat}</h3>`;
-                const votedId = userVotes[cat];
+                const className = slugify(cat.name);
+                html += `<div class="${className}"><h3>${cat.name}</h3>`;
+                const votedId = userVotes[cat.name];
                 if (votedId) {
                     const candidata = candidatas.find(c => c.id == votedId);
                     if (candidata) {
@@ -133,7 +179,7 @@
             const c = candidatas.find(cand => cand.id == id);
             if (c) {
                 const userVotes = votos[currentUser.username] || {};
-                const categories = ['Reina', 'Primera Princesa', 'Segunda Princesa', 'Primera Dama de Honor', 'Segunda Dama de Honor'];
+                const categories = categorias.length ? categorias : defaultCategorias;
                 
                 // Encontrar qué categoría está votada para esta candidata
                 let votedCategory = null;
@@ -172,7 +218,7 @@
 
                 let optionsHtml = '';
                 categories.forEach(cat => {
-                    optionsHtml += `<label>${cat} <input type="radio" name="categoria" value="${cat}" ${votedCategory === cat ? 'checked' : ''}></label>`;
+                    optionsHtml += `<label>${cat.name} <input type="radio" name="categoria" value="${cat.name}" ${votedCategory === cat.name ? 'checked' : ''}></label>`;
                 });
                 
                 document.getElementById('candidataDetails').innerHTML = `
@@ -248,7 +294,7 @@
             fetch('/api/load-data')
                 .then(response => response.json())
                 .then(data => {
-                    if (data.candidatas) {
+                            if (data.candidatas) {
                         candidatas = data.candidatas;
                         localStorage.setItem('candidatas', JSON.stringify(candidatas));
                     }
@@ -256,8 +302,14 @@
                         votos = data.votos;
                         localStorage.setItem('votos', JSON.stringify(votos));
                     }
-                    
-                            displayCandidatas(candidatas);
+                    if (data.categorias) {
+                        categorias = normalizeCategories(data.categorias);
+                        localStorage.setItem('categorias', JSON.stringify(categorias));
+                    } else {
+                        categorias = normalizeCategories(JSON.parse(localStorage.getItem('categorias')) || defaultCategorias.slice());
+                    }
+                    updateCategoryStyles();
+                    displayCandidatas(candidatas);
                     loadRanking();
                 })
                 .catch(e => {

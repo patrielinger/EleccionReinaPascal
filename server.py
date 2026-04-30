@@ -29,6 +29,14 @@ os.makedirs(DATA_DIR, exist_ok=True)
 CANDIDATAS_FILE = os.path.join(DATA_DIR, 'candidatas.json')
 USUARIOS_FILE = os.path.join(DATA_DIR, 'usuarios.json')
 VOTOS_FILE = os.path.join(DATA_DIR, 'votos.json')
+CATEGORIES_FILE = os.path.join(DATA_DIR, 'categorias.json')
+DEFAULT_CATEGORIES = [
+    {'name': 'Reina', 'color': '#ff6fe7'},
+    {'name': 'Primera Princesa', 'color': '#e6fa33'},
+    {'name': 'Segunda Princesa', 'color': '#e6fa33'},
+    {'name': 'Primera Dama de Honor', 'color': '#1fff40'},
+    {'name': 'Segunda Dama de Honor', 'color': '#1fff40'}
+]
 
 def load_candidatas():
     if os.path.exists(CANDIDATAS_FILE):
@@ -124,6 +132,41 @@ def save_votos(votos):
     with open(VOTOS_FILE, 'w') as f:
         json.dump(votos, f, indent=2)
 
+def load_categorias():
+    def normalize(categoria):
+        if isinstance(categoria, str):
+            return {'name': categoria, 'color': '#ff6fe7'}
+        if isinstance(categoria, dict) and categoria.get('name'):
+            return {'name': str(categoria['name']).strip(), 'color': categoria.get('color', '#ff6fe7')}
+        return None
+
+    if os.path.exists(CATEGORIES_FILE):
+        try:
+            with open(CATEGORIES_FILE, 'r') as f:
+                categorias = json.load(f)
+                if isinstance(categorias, list) and categorias:
+                    normalized = [normalize(c) for c in categorias]
+                    return [c for c in normalized if c]
+        except:
+            pass
+    return DEFAULT_CATEGORIES.copy()
+
+
+def save_categorias(categorias):
+    anteriores = load_categorias()
+    anteriores_names = {c['name'] for c in anteriores}
+    nuevas_names = {c['name'] for c in categorias if isinstance(c, dict) and c.get('name')}
+
+    for categoria in categorias:
+        if isinstance(categoria, dict) and categoria.get('name') and categoria['name'] not in anteriores_names:
+            logging.info(f"➕ Categoría AGREGADA: '{categoria['name']}'")
+    for categoria in anteriores:
+        if categoria['name'] not in nuevas_names:
+            logging.info(f"➖ Categoría ELIMINADA: '{categoria['name']}'")
+
+    with open(CATEGORIES_FILE, 'w') as f:
+        json.dump(categorias, f, indent=2)
+
 def clear_all_votes():
     logging.info("🧹 Todos los votos han sido eliminados por el administrador")
     with open(VOTOS_FILE, 'w') as f:
@@ -174,6 +217,15 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_json(400, {'error': str(e)})
                 return True
         
+        elif path == '/api/load-categorias':
+            try:
+                categorias = load_categorias()
+                self.send_json(200, {'success': True, 'categorias': categorias})
+                return True
+            except Exception as e:
+                self.send_json(400, {'error': str(e)})
+                return True
+        
         elif path == '/api/load-votos':
             try:
                 votos = load_votos()
@@ -187,10 +239,12 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
             try:
                 candidatas = load_candidatas()
                 votos = load_votos()
+                categorias = load_categorias()
                 self.send_json(200, {
                     'success': True, 
                     'candidatas': candidatas,
-                    'votos': votos
+                    'votos': votos,
+                    'categorias': categorias
                 })
                 return True
             except Exception as e:
@@ -440,6 +494,14 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
             try:
                 save_votos(data.get('votos', {}))
                 self.send_json(200, {'success': True})
+            except Exception as e:
+                self.send_json(400, {'error': str(e)})
+        
+        elif path == '/api/save-categorias':
+            try:
+                save_categorias(data.get('categorias', []))
+                self.send_json(200, {'success': True})
+                logging.info('✓ Categorías guardadas')
             except Exception as e:
                 self.send_json(400, {'error': str(e)})
         

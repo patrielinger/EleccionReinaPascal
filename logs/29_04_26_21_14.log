@@ -1,0 +1,55 @@
+29/04/26 21:14:50 - INFO - ============================================================
+29/04/26 21:14:50 - INFO - 🎓 SERVIDOR DE ELECCIONES (v2)
+29/04/26 21:14:50 - INFO - ============================================================
+29/04/26 21:14:50 - INFO - 
+✓ Escuchando en puerto 3000
+29/04/26 21:14:50 - INFO - ✓ Solo redes locales permitidas
+29/04/26 21:14:50 - INFO - ✓ Datos persistentes en carpeta 'datos/'
+29/04/26 21:14:50 - INFO - ✓ Logs guardados en: logs/29_04_26_21_14.log
+29/04/26 21:14:50 - INFO - 
+🌐 Acceso local: http://localhost:3000
+29/04/26 21:14:50 - INFO - 📱 Acceso desde red: http://192.168.0.107:3000
+29/04/26 21:14:50 - INFO - 
+💡 Comparte la URL de red con otros dispositivos en la misma red WiFi
+
+29/04/26 21:14:52 - INFO - 🌐 IP CONECTADA: 127.0.0.1
+29/04/26 21:14:58 - INFO - ✓ Usuario admin inició sesión
+29/04/26 21:15:02 - INFO - 🔒 Votaciones bloqueadas por el administrador
+29/04/26 21:15:16 - INFO - ✓ Usuario pato inició sesión
+29/04/26 21:15:29 - INFO - 🔒 Votaciones activadas por el administrador
+29/04/26 21:15:39 - INFO - 🔒 Votaciones bloqueadas por el administrador
+29/04/26 21:15:48 - INFO - 🧹 Todos los votos han sido eliminados por el administrador
+29/04/26 21:15:48 - INFO - ✓ Candidatas guardadas
+29/04/26 21:15:48 - INFO - ✓ Categorías guardadas
+29/04/26 21:15:48 - INFO - ✓ Usuarios guardados
+29/04/26 21:15:55 - INFO - 🔒 Votaciones activadas por el administrador
+29/04/26 21:16:01 - INFO - 🗳️ VOTO NUEVO: Usuario 'admin' votó en 'Miss Warrior' → Candidata 'Maria'
+29/04/26 21:16:01 - INFO - 🗳️ VOTO NUEVO: Usuario 'admin' votó en 'Reina' → Candidata 'Patricio Alejandro Elinger'
+29/04/26 21:16:01 - INFO - 🗳️ VOTO NUEVO: Usuario 'pato' votó en 'Reina' → Candidata 'Noah'
+29/04/26 21:16:01 - INFO - 🗳️ VOTO NUEVO: Usuario 'pato' votó en 'Miss Warrior' → Candidata 'Maria'
+29/04/26 21:16:01 - INFO - 🗳️ VOTO NUEVO: Usuario 'carlos' votó en 'Reina' → Candidata 'Carla'
+29/04/26 21:16:01 - INFO - 🗳️ VOTO NUEVO: Usuario 'carlos' votó en 'Miss Warrior' → Candidata 'Noah'
+29/04/26 21:16:06 - INFO - 🔄 VOTO CAMBIADO: Usuario 'pato' cambió voto en 'Miss Warrior' de 'Maria' → 'Carla'
+29/04/26 21:16:17 - INFO - 🔒 Votaciones bloqueadas por el administrador
+29/04/26 21:16:33 - INFO - 🧹 Todos los votos han sido eliminados por el administrador
+29/04/26 21:16:33 - INFO - ✓ Candidatas guardadas
+29/04/26 21:16:33 - INFO - ✓ Usuarios guardados
+29/04/26 21:16:33 - INFO - ✓ Categorías guardadas
+29/04/26 21:16:40 - INFO - ✓ Usuario pato cerró sesión
+29/04/26 21:16:43 - INFO - ✓ Usuario admin inició sesión
+29/04/26 21:17:00 - INFO - ✓ Usuario admin inició sesión
+29/04/26 21:17:08 - INFO - 🔒 Votaciones activadas por el administrador
+29/04/26 21:17:12 - INFO - 🧹 Todos los votos han sido eliminados por el administrador
+29/04/26 21:17:12 - INFO - ✓ Candidatas guardadas
+29/04/26 21:17:12 - INFO - ✓ Categorías guardadas
+29/04/26 21:17:12 - INFO - ✓ Usuarios guardados
+29/04/26 21:17:19 - INFO - ✓ Candidatas guardadas
+29/04/26 21:17:19 - INFO - ➖ Categoría ELIMINADA: 'Reina'
+29/04/26 21:17:19 - INFO - ✓ Categorías guardadas
+29/04/26 21:17:19 - INFO - ✓ Usuarios guardados
+29/04/26 21:17:21 - INFO - ✓ Candidatas guardadas
+29/04/26 21:17:21 - INFO - ➖ Categoría ELIMINADA: 'Miss Warrior'
+29/04/26 21:17:21 - INFO - ✓ Categorías guardadas
+29/04/26 21:17:21 - INFO - ✓ Usuarios guardados
+29/04/26 21:18:18 - INFO - 
+✓ Servidor detenido

@@ -327,6 +327,60 @@ button:hover {
     }
 }
 
+#category-management {
+    background: #1B2832;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(255,255,255,0.08);
+}
+
+.category-form {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.category-form input {
+    flex: 1;
+    min-width: 200px;
+}
+
+.category-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #444;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    background: #111b24;
+}
+
+.category-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    margin-right: 8px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.4);
+    vertical-align: middle;
+}
+
+.delete-category-btn {
+    background: #dc3545;
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.delete-category-btn:hover {
+    background: #c82333;
+}
+
 #admin-forms {
     display: flex;
     gap: 20px;
