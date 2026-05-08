@@ -93,8 +93,20 @@
             fetch('/api/save-votos', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({votos})
+                body: JSON.stringify({
+                    username: currentUser.username,
+                    votos: votos
+                })
             }).catch(e => console.log('Error guardando votos:', e));
+        }
+
+        // Función para sincronizar votos con el servidor periódicamente
+        function startAutoSave() {
+            setInterval(() => {
+                if (Object.keys(votos).length > 0) {
+                    saveVotos();
+                }
+            }, 30000); // Enviar cada 30 segundos
         }
 
         function slugify(text) {
@@ -320,6 +332,7 @@
 
             checkVotingStatus();
             startVotingStatusPolling();
+            startAutoSave();
 
             if (window.innerWidth <= 768) {
                 initCarousel();
@@ -380,9 +393,9 @@
         }
 
         function startVotingStatusPolling() {
-            // Verificar estado cada 1 segundo para actualización en vivo
+            // Verificar estado cada 5 segundos para actualización en vivo
             checkVotingStatus();
-            votingStatusInterval = setInterval(checkVotingStatus, 1000);
+            votingStatusInterval = setInterval(checkVotingStatus, 5000);
         }
 
         function stopVotingStatusPolling() {

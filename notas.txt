@@ -1,0 +1,4 @@
+los votos se guardan en cache del buscador y al borrar todos los datos vuelven a cargarlos
+al servidor con la info del cache
+
+- que envie constantemente la informacion en cache

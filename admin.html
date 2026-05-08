@@ -521,7 +521,8 @@
             e.preventDefault();
             const username = document.getElementById('userUsername').value;
             const password = document.getElementById('userPassword').value;
-            usuarios.push({ username, password, role: 'user' });
+            const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            usuarios.push({ id: userId, username, password, role: 'user' });
             saveData();
             loadUsuarios();
             e.target.reset();

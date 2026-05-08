@@ -8,7 +8,9 @@ import ipaddress
 import uuid
 import time
 import shutil
+import threading
 from urllib.parse import urlparse
+from urllib.parse import parse_qs
 import sys
 import re
 import logging
@@ -18,18 +20,26 @@ from io import StringIO
 PORT = 3000
 ALLOWED_EXTENSIONS = {'.html', '.css', '.js', '.json', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico'}
 ACTIVE_SESSIONS = {}
-CONNECTED_IPS = set()  # Para rastrear IPs conectadas
+CONNECTED_IPS = set()
 VOTING_ENABLED = True
 
+# Datos en memoria para optimización
+CANDIDATAS = []
+USUARIOS = []
+VOTOS = {}
+CATEGORIAS = []
 
-# Crear directorio datos
+# Lock para evitar race conditions
+VOTOS_LOCK = threading.RLock()  # RLock permite múltiples llamadas del mismo thread
+
+# Archivos de datos
 DATA_DIR = 'datos'
 os.makedirs(DATA_DIR, exist_ok=True)
-
 CANDIDATAS_FILE = os.path.join(DATA_DIR, 'candidatas.json')
 USUARIOS_FILE = os.path.join(DATA_DIR, 'usuarios.json')
 VOTOS_FILE = os.path.join(DATA_DIR, 'votos.json')
 CATEGORIES_FILE = os.path.join(DATA_DIR, 'categorias.json')
+
 DEFAULT_CATEGORIES = [
     {'name': 'Reina', 'color': '#ff6fe7'},
     {'name': 'Primera Princesa', 'color': '#e6fa33'},
@@ -38,99 +48,121 @@ DEFAULT_CATEGORIES = [
     {'name': 'Segunda Dama de Honor', 'color': '#1fff40'}
 ]
 
-def load_candidatas():
-    if os.path.exists(CANDIDATAS_FILE):
-        try:
+def load_data():
+    """Carga todos los datos en memoria al iniciar"""
+    global CANDIDATAS, USUARIOS, VOTOS, CATEGORIAS
+    try:
+        if os.path.exists(CANDIDATAS_FILE):
             with open(CANDIDATAS_FILE, 'r') as f:
-                return json.load(f)
-        except:
-            return []
-    return []
+                CANDIDATAS = json.load(f)
+    except:
+        CANDIDATAS = []
+    
+    try:
+        if os.path.exists(USUARIOS_FILE):
+            with open(USUARIOS_FILE, 'r') as f:
+                USUARIOS = json.load(f)
+                # Migración: Agregar IDs únicos a usuarios que no los tengan
+                for user in USUARIOS:
+                    if 'id' not in user:
+                        user['id'] = f"user_{uuid.uuid4().hex}"
+    except:
+        USUARIOS = [{'id': 'user_admin_001', 'username': 'admin', 'password': 'admin', 'role': 'admin'}]
+    
+    try:
+        if os.path.exists(VOTOS_FILE):
+            with open(VOTOS_FILE, 'r') as f:
+                VOTOS = json.load(f)
+    except:
+        VOTOS = {}
+    
+    try:
+        if os.path.exists(CATEGORIES_FILE):
+            with open(CATEGORIES_FILE, 'r') as f:
+                CATEGORIAS = json.load(f)
+    except:
+        CATEGORIAS = DEFAULT_CATEGORIES.copy()
+
+def save_data():
+    """Guarda todos los datos en archivos periódicamente"""
+    try:
+        with open(CANDIDATAS_FILE, 'w') as f:
+            json.dump(CANDIDATAS, f, indent=2)
+        with open(USUARIOS_FILE, 'w') as f:
+            json.dump(USUARIOS, f, indent=2)
+        with open(VOTOS_FILE, 'w') as f:
+            json.dump(VOTOS, f, indent=2)
+        with open(CATEGORIES_FILE, 'w') as f:
+            json.dump(CATEGORIAS, f, indent=2)
+    except Exception as e:
+        logging.error(f"Error guardando datos: {e}")
+
+def cleanup_expired_sessions():
+    """Limpia sesiones expiradas cada minuto"""
+    current_time = time.time()
+    expired = [sid for sid, session in ACTIVE_SESSIONS.items() if current_time - session['timestamp'] > 3600]  # 1 hora
+    for sid in expired:
+        del ACTIVE_SESSIONS[sid]
+    if expired:
+        logging.info(f"Limpiadas {len(expired)} sesiones expiradas")
+
+def periodic_save():
+    """Guarda datos cada 30 segundos"""
+    save_data()
+    cleanup_expired_sessions()
+
+# Funciones legacy para compatibilidad
+def load_candidatas():
+    return CANDIDATAS
 
 def save_candidatas(candidatas):
-    # Cargar candidatas anteriores para comparar
-    anteriores = load_candidatas()
-    anteriores_dict = {c['id']: c for c in anteriores}
-    nuevas_dict = {c['id']: c for c in candidatas}
-    
-    # Detectar candidatas agregadas
-    for cid, candidata in nuevas_dict.items():
-        if cid not in anteriores_dict:
-            logging.info(f"➕ Candidata AGREGADA: ID={cid}, Nombre='{candidata.get('nombre', 'N/A')}'")
-    
-    # Detectar candidatas eliminadas
-    for cid, candidata in anteriores_dict.items():
-        if cid not in nuevas_dict:
-            logging.info(f"➖ Candidata ELIMINADA: ID={cid}, Nombre='{candidata.get('nombre', 'N/A')}'")
-    
-    with open(CANDIDATAS_FILE, 'w') as f:
-        json.dump(candidatas, f, indent=2)
+    global CANDIDATAS
+    CANDIDATAS = candidatas
+    # Logging de cambios
+    logging.info(f"✓ Candidatas guardadas: {len(candidatas)} candidatas")
 
 def load_usuarios():
-    if os.path.exists(USUARIOS_FILE):
-        try:
-            with open(USUARIOS_FILE, 'r') as f:
-                return json.load(f)
-        except:
-            return [{'username': 'admin', 'password': 'admin', 'role': 'admin'}]
-    return [{'username': 'admin', 'password': 'admin', 'role': 'admin'}]
+    return USUARIOS
 
 def save_usuarios(usuarios):
-    # Cargar usuarios anteriores para comparar
-    anteriores = load_usuarios()
-    anteriores_dict = {u['username']: u for u in anteriores}
-    nuevas_dict = {u['username']: u for u in usuarios}
-    
-    # Detectar usuarios agregados
-    for username, usuario in nuevas_dict.items():
-        if username not in anteriores_dict:
-            logging.info(f"👤 Usuario AGREGADO: '{username}' (Rol: {usuario.get('role', 'user')})")
-    
-    # Detectar usuarios eliminados
-    for username, usuario in anteriores_dict.items():
-        if username not in nuevas_dict:
-            logging.info(f"👤 Usuario ELIMINADO: '{username}' (Rol: {usuario.get('role', 'user')})")
-    
-    with open(USUARIOS_FILE, 'w') as f:
-        json.dump(usuarios, f, indent=2)
+    global USUARIOS
+    USUARIOS = usuarios
+    logging.info(f"✓ Usuarios guardados: {len(usuarios)} usuarios")
 
 def load_votos():
-    if os.path.exists(VOTOS_FILE):
-        try:
-            with open(VOTOS_FILE, 'r') as f:
-                return json.load(f)
-        except:
-            return {}
-    return {}
+    return VOTOS
 
 def save_votos(votos):
-    # Cargar votos anteriores para comparar
-    anteriores = load_votos()
-    
-    # Detectar nuevos votos o cambios
-    for username, user_votes in votos.items():
-        prev_user_votes = anteriores.get(username, {})
+    global VOTOS
+    VOTOS = votos
+    # Logging de cambios en votos
+    total_votes = sum(len(user_votes) for user_votes in votos.values())
+    logging.info(f"✓ Votos guardados: {total_votes} votos totales")
+
+def clear_all_votes():
+    global VOTOS
+    with VOTOS_LOCK:
+        VOTOS = {}
+    logging.info("🧹 Todos los votos han sido eliminados por el administrador")
+
+
+
+
+
+def save_votos(votos):
+    """Actualiza votos de forma segura, sin sobrescribir otros usuarios"""
+    global VOTOS
+    with VOTOS_LOCK:
+        # Actualizar solo los usuarios que llegaron, no sobrescribir todo
+        for username, user_votes in votos.items():
+            if username not in VOTOS:
+                VOTOS[username] = {}
+            # Actualizar categorías de este usuario
+            VOTOS[username].update(user_votes)
         
-        for categoria, candidata_id in user_votes.items():
-            prev_candidata_id = prev_user_votes.get(categoria)
-            
-            if prev_candidata_id != candidata_id:
-                # Encontrar nombre de la candidata
-                candidatas = load_candidatas()
-                candidata = next((c for c in candidatas if c['id'] == candidata_id), None)
-                candidata_nombre = candidata['nombre'] if candidata else f"ID:{candidata_id}"
-                
-                if prev_candidata_id is None:
-                    logging.info(f"🗳️ VOTO NUEVO: Usuario '{username}' votó en '{categoria}' → Candidata '{candidata_nombre}'")
-                else:
-                    # Encontrar nombre de la candidata anterior
-                    prev_candidata = next((c for c in candidatas if c['id'] == prev_candidata_id), None)
-                    prev_candidata_nombre = prev_candidata['nombre'] if prev_candidata else f"ID:{prev_candidata_id}"
-                    
-                    logging.info(f"🔄 VOTO CAMBIADO: Usuario '{username}' cambió voto en '{categoria}' de '{prev_candidata_nombre}' → '{candidata_nombre}'")
-    
-    with open(VOTOS_FILE, 'w') as f:
-        json.dump(votos, f, indent=2)
+        total_votes = sum(len(user_votes) for user_votes in VOTOS.values())
+        logging.info(f"✓ Votos guardados (sync): {total_votes} votos totales")
+        return True
 
 def load_categorias():
     def normalize(categoria):
@@ -168,9 +200,9 @@ def save_categorias(categorias):
         json.dump(categorias, f, indent=2)
 
 def clear_all_votes():
+    global VOTOS
+    VOTOS = {}
     logging.info("🧹 Todos los votos han sido eliminados por el administrador")
-    with open(VOTOS_FILE, 'w') as f:
-        json.dump({}, f, indent=2)
 
 class SecureHandler(http.server.SimpleHTTPRequestHandler):
     
@@ -492,7 +524,19 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
         
         elif path == '/api/save-votos':
             try:
-                save_votos(data.get('votos', {}))
+                votos_data = data.get('votos', {})
+                username = data.get('username')
+                
+                # Validar que el usuario que envía los votos existe
+                user = next((u for u in USUARIOS if u['username'] == username), None)
+                if not user:
+                    self.send_json(403, {'error': 'Usuario no autenticado'})
+                    return
+                
+                # Asegurar que solo actualiza sus propios votos
+                user_votos = {username: votos_data.get(username, {})}
+                save_votos(user_votos)
+                
                 self.send_json(200, {'success': True})
             except Exception as e:
                 self.send_json(400, {'error': str(e)})
@@ -641,13 +685,14 @@ def setup_logging():
     formatter = logging.Formatter(log_format, datefmt=date_format)
     
     # Handler para archivo
-    file_handler = logging.FileHandler(log_path)
+    file_handler = logging.FileHandler(log_path, encoding='utf-8')
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
     
-    # Handler para consola
-    console_handler = logging.StreamHandler(sys.stdout)
+    # Handler para consola (forzar UTF-8 para compatibilidad con Windows)
+    console_stream = open(sys.stdout.fileno(), mode='w', encoding='utf-8', buffering=1, closefd=False)
+    console_handler = logging.StreamHandler(console_stream)
     console_handler.setLevel(logging.DEBUG)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
@@ -659,6 +704,21 @@ if __name__ == '__main__':
     
     # Configurar logging
     log_path = setup_logging()
+    
+    # Cargar datos en memoria
+    load_data()
+    logging.info("✓ Datos cargados en memoria")
+    
+    # Iniciar guardado periódico cada 30 segundos
+    import threading
+    def periodic_save_thread():
+        while True:
+            time.sleep(30)
+            periodic_save()
+    
+    save_thread = threading.Thread(target=periodic_save_thread, daemon=True)
+    save_thread.start()
+    logging.info("✓ Guardado automático iniciado (cada 30 segundos)")
     
     # Obtener IP local
     local_ip = get_local_ip()

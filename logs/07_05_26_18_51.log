@@ -1,0 +1,216 @@
+07/05/26 18:51:24 - INFO - ✓ Datos cargados en memoria
+07/05/26 18:51:24 - INFO - ✓ Guardado automático iniciado (cada 30 segundos)
+07/05/26 18:51:24 - INFO - ============================================================
+07/05/26 18:51:24 - INFO - 🎓 SERVIDOR DE ELECCIONES (v2)
+07/05/26 18:51:24 - INFO - ============================================================
+07/05/26 18:51:24 - INFO - 
+✓ Escuchando en puerto 3000
+07/05/26 18:51:24 - INFO - ✓ Solo redes locales permitidas
+07/05/26 18:51:24 - INFO - ✓ Datos persistentes en carpeta 'datos/'
+07/05/26 18:51:24 - INFO - ✓ Logs guardados en: logs/07_05_26_18_51.log
+07/05/26 18:51:24 - INFO - 
+🌐 Acceso local: http://localhost:3000
+07/05/26 18:51:24 - INFO - 📱 Acceso desde red: http://192.168.0.103:3000
+07/05/26 18:51:24 - INFO - 
+💡 Comparte la URL de red con otros dispositivos en la misma red WiFi
+
+07/05/26 18:51:43 - INFO - 🌐 IP CONECTADA: 127.0.0.1
+07/05/26 18:51:51 - INFO - ✓ Usuario admin inició sesión
+07/05/26 18:52:03 - INFO - ✓ Usuario pato inició sesión
+07/05/26 18:52:25 - INFO - ✓ Candidatas guardadas: 6 candidatas
+07/05/26 18:52:25 - INFO - ✓ Candidatas guardadas
+07/05/26 18:52:25 - INFO - ✓ Votos guardados: 0 votos totales
+07/05/26 18:52:25 - INFO - ✓ Usuarios guardados: 3 usuarios
+07/05/26 18:52:25 - INFO - ✓ Usuarios guardados
+07/05/26 18:52:25 - INFO - ➖ Categoría ELIMINADA: 'Primera Princesa'
+07/05/26 18:52:25 - INFO - ✓ Categorías guardadas
+07/05/26 18:52:32 - INFO - 🔒 Votaciones bloqueadas por el administrador
+07/05/26 18:52:39 - INFO - 🔒 Votaciones activadas por el administrador
+07/05/26 18:52:45 - INFO - 🔒 Votaciones bloqueadas por el administrador
+07/05/26 18:52:48 - INFO - 🔒 Votaciones activadas por el administrador
+07/05/26 18:52:55 - INFO - ✓ Votos guardados: 1 votos totales
+07/05/26 18:52:57 - INFO - ✓ Votos guardados: 2 votos totales
+07/05/26 18:52:59 - INFO - ✓ Votos guardados: 3 votos totales
+07/05/26 18:53:03 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 18:53:12 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 18:53:42 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 18:54:13 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 18:54:43 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 18:55:13 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 18:55:43 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 18:56:13 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 18:56:43 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 18:57:13 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 18:57:43 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 18:58:14 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 18:58:44 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 18:59:14 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 18:59:44 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:00:14 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:00:15 - INFO - ✓ Usuario carlos inició sesión
+07/05/26 19:00:35 - INFO - ✓ Candidatas guardadas: 6 candidatas
+07/05/26 19:00:35 - INFO - ✓ Candidatas guardadas
+07/05/26 19:00:35 - INFO - ✓ Usuarios guardados: 4 usuarios
+07/05/26 19:00:35 - INFO - ✓ Usuarios guardados
+07/05/26 19:00:35 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:00:35 - INFO - ✓ Categorías guardadas
+07/05/26 19:00:40 - INFO - ✓ Candidatas guardadas: 6 candidatas
+07/05/26 19:00:40 - INFO - ✓ Candidatas guardadas
+07/05/26 19:00:40 - INFO - ✓ Categorías guardadas
+07/05/26 19:00:40 - INFO - ✓ Usuarios guardados: 5 usuarios
+07/05/26 19:00:40 - INFO - ✓ Usuarios guardados
+07/05/26 19:00:40 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:00:44 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:00:47 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:00:57 - INFO - ✓ Usuario matt inició sesión
+07/05/26 19:01:07 - INFO - ✓ Usuario barrios inició sesión
+07/05/26 19:01:15 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:01:28 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:01:39 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:01:45 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:01:56 - INFO - ✓ Votos guardados: 5 votos totales
+07/05/26 19:01:58 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:01:59 - INFO - ✓ Votos guardados: 6 votos totales
+07/05/26 19:02:01 - INFO - ✓ Votos guardados: 7 votos totales
+07/05/26 19:02:04 - INFO - ✓ Votos guardados: 7 votos totales
+07/05/26 19:02:07 - INFO - ✓ Votos guardados: 8 votos totales
+07/05/26 19:02:09 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:02:10 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:02:15 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:02:18 - INFO - ✓ Votos guardados: 5 votos totales
+07/05/26 19:02:21 - INFO - ✓ Votos guardados: 6 votos totales
+07/05/26 19:02:23 - INFO - ✓ Votos guardados: 7 votos totales
+07/05/26 19:02:24 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:02:27 - INFO - ✓ Votos guardados: 8 votos totales
+07/05/26 19:02:28 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:02:30 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:02:36 - INFO - ✓ Votos guardados: 5 votos totales
+07/05/26 19:02:39 - INFO - ✓ Votos guardados: 6 votos totales
+07/05/26 19:02:39 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:02:41 - INFO - ✓ Votos guardados: 7 votos totales
+07/05/26 19:02:44 - INFO - ✓ Votos guardados: 8 votos totales
+07/05/26 19:02:46 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:02:47 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:02:54 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:03:10 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:03:16 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:03:20 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:03:24 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:03:40 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:03:46 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:03:50 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:03:54 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:04:10 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:04:16 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:04:20 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:04:24 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:04:40 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:04:46 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:04:50 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:04:55 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:05:11 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:05:17 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:05:20 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:05:25 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:05:41 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:05:47 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:05:51 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:05:55 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:06:11 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:06:17 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:06:21 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:06:25 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:06:42 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:06:47 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:06:51 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:06:55 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:07:12 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:07:17 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:07:21 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:07:25 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:07:42 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:07:47 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:07:51 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:07:55 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:08:13 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:08:17 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:08:22 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:08:26 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:08:43 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:08:48 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:08:51 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:08:56 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:09:13 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:09:18 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:09:22 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:09:26 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:09:44 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:09:48 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:09:52 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:09:56 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:10:14 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:10:18 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:10:22 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:10:26 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:10:44 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:10:48 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:10:52 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:10:56 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:11:15 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:11:18 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:11:22 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:11:26 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:11:45 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:11:48 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:11:52 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:11:56 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:12:15 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:12:18 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:12:22 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:12:27 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:12:46 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:12:48 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:12:52 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:12:57 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:13:16 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:13:19 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:13:23 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:13:27 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:13:46 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:13:49 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:13:53 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:13:57 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:14:17 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:14:19 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:14:23 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:14:27 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:14:47 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:14:49 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:14:53 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:14:57 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:15:17 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:15:19 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:15:23 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:15:27 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:15:48 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:15:49 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:15:53 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:15:57 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:16:18 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:16:19 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:16:23 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:16:27 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:16:48 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:16:49 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:16:53 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:16:58 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:17:19 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:17:20 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:17:24 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:17:28 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:17:49 - INFO - ✓ Votos guardados: 4 votos totales
+07/05/26 19:17:50 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:17:54 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:17:58 - INFO - ✓ Votos guardados: 9 votos totales
+07/05/26 19:18:07 - INFO - 
+✓ Servidor detenido

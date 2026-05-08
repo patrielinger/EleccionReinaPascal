@@ -1,0 +1,12 @@
+07/05/26 18:49:46 - INFO - ✓ Datos cargados en memoria
+07/05/26 18:49:46 - INFO - ✓ Guardado automático iniciado (cada 30 segundos)
+07/05/26 18:49:46 - INFO - ============================================================
+07/05/26 18:49:46 - INFO - 🎓 SERVIDOR DE ELECCIONES (v2)
+07/05/26 18:49:46 - INFO - ============================================================
+07/05/26 18:49:46 - INFO - 
+✓ Escuchando en puerto 3000
+07/05/26 18:49:46 - INFO - ✓ Solo redes locales permitidas
+07/05/26 18:49:46 - INFO - ✓ Datos persistentes en carpeta 'datos/'
+07/05/26 18:49:46 - INFO - ✓ Logs guardados en: logs/07_05_26_18_49.log
+07/05/26 18:49:46 - INFO - 
+🌐 Acceso local: http://localhost:3000
