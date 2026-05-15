@@ -130,10 +130,10 @@
         
         function initAdmin() {
             let currentUser = JSON.parse(localStorage.getItem('currentUser'));
-            let candidatas = JSON.parse(localStorage.getItem('candidatas')) || [];
-            let usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
-            let votos = JSON.parse(localStorage.getItem('votos')) || {};
-            let categorias = normalizeCategories(JSON.parse(localStorage.getItem('categorias')) || []);
+            let candidatas = [];
+            let usuarios = [];
+            let votos = {};
+            let categorias = [];
             const defaultCategorias = [
                 { name: 'Reina', color: '#ff6fe7' },
                 { name: 'Primera Princesa', color: '#e6fa33' },
@@ -189,15 +189,12 @@
                 .then(data => {
                     if (data.candidatas) {
                         candidatas = data.candidatas;
-                        localStorage.setItem('candidatas', JSON.stringify(candidatas));
                     }
                     if (data.votos) {
                         votos = data.votos;
-                        localStorage.setItem('votos', JSON.stringify(votos));
                     }
                     if (data.categorias) {
                         categorias = normalizeCategories(data.categorias);
-                        localStorage.setItem('categorias', JSON.stringify(categorias));
                     }
                     updateCategoryStyles();
                     renderCategoryList();
@@ -213,11 +210,6 @@
                 });
 
         function saveData() {
-            localStorage.setItem('candidatas', JSON.stringify(candidatas));
-            localStorage.setItem('usuarios', JSON.stringify(usuarios));
-            localStorage.setItem('votos', JSON.stringify(votos));
-            localStorage.setItem('categorias', JSON.stringify(categorias));
-            
             // Guardar en servidor
             fetch('/api/save-candidatas', {
                 method: 'POST',

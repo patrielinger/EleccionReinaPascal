@@ -150,18 +150,21 @@ def clear_all_votes():
 
 
 def save_votos(votos):
-    """Actualiza votos de forma segura, sin sobrescribir otros usuarios"""
+    """Actualiza votos de forma segura, reemplazando el registro completo del usuario."""
     global VOTOS
     with VOTOS_LOCK:
-        # Actualizar solo los usuarios que llegaron, no sobrescribir todo
         for username, user_votes in votos.items():
-            if username not in VOTOS:
-                VOTOS[username] = {}
-            # Actualizar categorías de este usuario
-            VOTOS[username].update(user_votes)
+            # Reemplazar todo el histórico de votos del usuario para reflejar eliminaciones y cambios completos.
+            VOTOS[username] = user_votes if isinstance(user_votes, dict) else {}
         
         total_votes = sum(len(user_votes) for user_votes in VOTOS.values())
-        logging.info(f"✓ Votos guardados (sync): {total_votes} votos totales")
+        try:
+            with open(VOTOS_FILE, 'w', encoding='utf-8') as f:
+                json.dump(VOTOS, f, indent=2, ensure_ascii=False)
+            logging.info(f"✓ Votos persistidos en {VOTOS_FILE}: {total_votes} votos totales")
+        except Exception as e:
+            logging.error(f"Error guardando votos en archivo: {e}")
+            raise
         return True
 
 def load_categorias():

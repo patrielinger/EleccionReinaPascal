@@ -78,6 +78,7 @@
         let votos = {};
         let categorias = [];
         let votingEnabled = true;
+        let modal = null;
         const defaultCategorias = [
             { name: 'Reina', color: '#ff6fe7' },
             { name: 'Primera Princesa', color: '#e6fa33' },
@@ -86,27 +87,117 @@
             { name: 'Segunda Dama de Honor', color: '#1fff40' }
         ];
         
-        function saveVotos() {
-            localStorage.setItem('votos', JSON.stringify(votos));
-            
-            // Guardar votos en servidor
-            fetch('/api/save-votos', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    username: currentUser.username,
-                    votos: votos
-                })
-            }).catch(e => console.log('Error guardando votos:', e));
+        let pendingVotePayload = null;
+        let pendingVoteRetryTimer = null;
+        let dataPollingTimer = null;
+        let isSavingVote = false;
+
+        function queueVotePayload(payload) {
+            pendingVotePayload = payload;
+            processPendingVote();
         }
 
-        // Función para sincronizar votos con el servidor periódicamente
-        function startAutoSave() {
-            setInterval(() => {
-                if (Object.keys(votos).length > 0) {
-                    saveVotos();
+        async function processPendingVote() {
+            if (!pendingVotePayload || isSavingVote) return;
+            isSavingVote = true;
+
+            try {
+                const response = await fetch('/api/save-votos', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(pendingVotePayload)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        pendingVotePayload = null;
+                        updateVotingStatusBanner('✅ Voto guardado en el servidor y persistido en votos.json', 'success');
+                        return;
+                    }
+                    console.warn('Servidor rechazó el voto:', data);
+                } else {
+                    console.warn('Error HTTP guardando voto:', response.status, response.statusText);
                 }
-            }, 30000); // Enviar cada 30 segundos
+            } catch (error) {
+                console.log('Error enviando voto al servidor:', error);
+            } finally {
+                isSavingVote = false;
+                if (pendingVotePayload) {
+                    startPendingVoteRetry();
+                }
+            }
+        }
+
+        function startPendingVoteRetry() {
+            if (pendingVoteRetryTimer) return;
+            pendingVoteRetryTimer = setInterval(() => {
+                if (pendingVotePayload) {
+                    processPendingVote();
+                } else {
+                    clearInterval(pendingVoteRetryTimer);
+                    pendingVoteRetryTimer = null;
+                }
+            }, 2000);
+        }
+
+        function updateVotingStatusBanner(message, type) {
+            const banner = document.getElementById('votingStatusBanner');
+            banner.textContent = message;
+            banner.style.display = 'block';
+            if (type === 'error') {
+                banner.style.backgroundColor = '#f8d7da';
+                banner.style.color = '#721c24';
+                banner.style.border = '2px solid #f5c6cb';
+            } else if (type === 'success') {
+                banner.style.backgroundColor = '#d4edda';
+                banner.style.color = '#155724';
+                banner.style.border = '2px solid #28a745';
+            } else {
+                banner.style.backgroundColor = '#fff3cd';
+                banner.style.color = '#856404';
+                banner.style.border = '2px solid #ffeeba';
+            }
+        }
+
+        async function loadServerData() {
+            try {
+                const response = await fetch('/api/load-data', { cache: 'no-store' });
+                if (!response.ok) {
+                    throw new Error(`${response.status} ${response.statusText}`);
+                }
+                const data = await response.json();
+                if (data.success) {
+                    candidatas = data.candidatas || [];
+                    votos = data.votos || {};
+                    categorias = normalizeCategories(data.categorias || []);
+                    if (pendingVotePayload && pendingVotePayload.username === currentUser.username) {
+                        votos[currentUser.username] = pendingVotePayload.votos || {};
+                    }
+                    updateCategoryStyles();
+                    displayCandidatas(candidatas);
+                    loadRanking();
+                }
+            } catch (error) {
+                console.log('Error cargando datos del servidor:', error);
+                updateVotingStatusBanner('⚠️ No se pudo conectar al servidor. Los cambios pendientes se reintentará.', 'error');
+                if (!candidatas.length) {
+                    document.getElementById('candidatasGrid').innerHTML = '<p>No hay datos disponibles hasta que se restablezca la conexión.</p>';
+                }
+            }
+        }
+
+        function startServerPolling() {
+            if (dataPollingTimer) return;
+            loadServerData();
+            dataPollingTimer = setInterval(loadServerData, 2000);
+        }
+
+        function stopServerPolling() {
+            if (dataPollingTimer) {
+                clearInterval(dataPollingTimer);
+                dataPollingTimer = null;
+            }
         }
 
         function slugify(text) {
@@ -268,19 +359,24 @@
         function votar(candId, categoria) {
             if (!votos[currentUser.username]) votos[currentUser.username] = {};
             const userVotes = votos[currentUser.username];
-            
-            // Primero, buscar si esta candidata ya tiene un voto en otra categoría
-            // Si existe, eliminarlo (garantiza que cada candidata solo tenga UN voto por usuario)
-            for (const [cat, votedCandId] of Object.entries(userVotes)) {
+
+            // Eliminar cualquier voto previo de esta candidata en otra categoría
+            for (const [cat, votedCandId] of Object.entries({...userVotes})) {
                 if (votedCandId == candId && cat !== categoria) {
                     delete userVotes[cat];
                 }
             }
-            
-            // Asignar el nuevo voto a la categoría seleccionada
+
+            // Reemplazar el voto de la categoría seleccionada si ya había otra candidata
+            if (userVotes[categoria] && userVotes[categoria] !== candId) {
+                delete userVotes[categoria];
+            }
+
             userVotes[categoria] = candId;
-            
-            saveVotos();
+            queueVotePayload({
+                username: currentUser.username,
+                votos: { [currentUser.username]: { ...userVotes } }
+            });
             loadRanking();
             modal.style.display = 'none';
         }
@@ -288,57 +384,36 @@
         function eliminarVoto(categoria) {
             if (!votos[currentUser.username]) return;
             const userVotes = votos[currentUser.username];
-            
-            // Eliminar el voto de esta categoría
             delete userVotes[categoria];
-            
-            saveVotos();
+            queueVotePayload({
+                username: currentUser.username,
+                votos: { [currentUser.username]: { ...userVotes } }
+            });
             loadRanking();
             modal.style.display = 'none';
         }
 
         function initVoting() {
             currentUser = JSON.parse(localStorage.getItem('currentUser'));
-            candidatas = JSON.parse(localStorage.getItem('candidatas')) || [];
-            votos = JSON.parse(localStorage.getItem('votos')) || {};
+            if (!currentUser) {
+                window.location.href = 'index.html';
+                return;
+            }
 
-            // Cargar datos del servidor
-            fetch('/api/load-data')
-                .then(response => response.json())
-                .then(data => {
-                            if (data.candidatas) {
-                        candidatas = data.candidatas;
-                        localStorage.setItem('candidatas', JSON.stringify(candidatas));
-                    }
-                    if (data.votos) {
-                        votos = data.votos;
-                        localStorage.setItem('votos', JSON.stringify(votos));
-                    }
-                    if (data.categorias) {
-                        categorias = normalizeCategories(data.categorias);
-                        localStorage.setItem('categorias', JSON.stringify(categorias));
-                    } else {
-                        categorias = normalizeCategories(JSON.parse(localStorage.getItem('categorias')) || defaultCategorias.slice());
-                    }
-                    updateCategoryStyles();
-                    displayCandidatas(candidatas);
-                    loadRanking();
-                })
-                .catch(e => {
-                    console.log('Error cargando datos del servidor, usando datos locales:', e);
-                    displayCandidatas(candidatas);
-                    loadRanking();
-                });
+            candidatas = [];
+            votos = {};
+            categorias = [];
+
+            loadServerData();
+            startServerPolling();
 
             checkVotingStatus();
             startVotingStatusPolling();
-            startAutoSave();
 
             if (window.innerWidth <= 768) {
                 initCarousel();
             }
 
-            // Configurar event listeners después de cargar datos
             document.getElementById('search').addEventListener('input', (e) => {
                 const query = e.target.value.toLowerCase();
                 const filtered = candidatas.filter(c =>
@@ -348,7 +423,7 @@
                 displayCandidatas(filtered);
             });
 
-            const modal = document.getElementById('modal');
+            modal = document.getElementById('modal');
             const closeBtn = document.getElementsByClassName('close')[0];
 
             closeBtn.onclick = () => modal.style.display = 'none';
@@ -393,9 +468,9 @@
         }
 
         function startVotingStatusPolling() {
-            // Verificar estado cada 5 segundos para actualización en vivo
+            // Verificar estado cada 2 segundos para actualización en vivo
             checkVotingStatus();
-            votingStatusInterval = setInterval(checkVotingStatus, 5000);
+            votingStatusInterval = setInterval(checkVotingStatus, 2000);
         }
 
         function stopVotingStatusPolling() {

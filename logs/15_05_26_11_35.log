@@ -1,0 +1,29 @@
+15/05/26 11:35:21 - INFO - ✓ Datos cargados en memoria
+15/05/26 11:35:21 - INFO - ✓ Guardado automático iniciado (cada 30 segundos)
+15/05/26 11:35:21 - INFO - ============================================================
+15/05/26 11:35:21 - INFO - 🎓 SERVIDOR DE ELECCIONES (v2)
+15/05/26 11:35:21 - INFO - ============================================================
+15/05/26 11:35:21 - INFO - 
+✓ Escuchando en puerto 3000
+15/05/26 11:35:21 - INFO - ✓ Solo redes locales permitidas
+15/05/26 11:35:21 - INFO - ✓ Datos persistentes en carpeta 'datos/'
+15/05/26 11:35:21 - INFO - ✓ Logs guardados en: logs\15_05_26_11_35.log
+15/05/26 11:35:21 - INFO - 
+🌐 Acceso local: http://localhost:3000
+15/05/26 11:35:21 - INFO - 📱 Acceso desde red: http://192.168.100.68:3000
+15/05/26 11:35:21 - INFO - 
+💡 Comparte la URL de red con otros dispositivos en la misma red WiFi
+
+15/05/26 11:35:22 - INFO - 🌐 IP CONECTADA: 127.0.0.1
+15/05/26 11:35:29 - INFO - ✓ Usuario admin inició sesión
+15/05/26 11:35:34 - INFO - 🌐 IP CONECTADA: 192.168.100.55
+15/05/26 11:35:39 - INFO - ✓ Usuario pato inició sesión
+15/05/26 11:36:05 - INFO - ✓ Usuario pato cerró sesión
+15/05/26 11:36:13 - INFO - ✓ Usuario carlos inició sesión
+15/05/26 11:36:23 - INFO - ✓ Usuario barrios inició sesión
+15/05/26 11:36:31 - INFO - ✓ Votos persistidos en datos\votos.json: 1 votos totales
+15/05/26 11:36:34 - INFO - ✓ Votos persistidos en datos\votos.json: 2 votos totales
+15/05/26 11:36:39 - INFO - ✓ Votos persistidos en datos\votos.json: 3 votos totales
+15/05/26 11:36:42 - INFO - ✓ Votos persistidos en datos\votos.json: 4 votos totales
+15/05/26 11:36:48 - INFO - ✓ Votos persistidos en datos\votos.json: 5 votos totales
+15/05/26 11:37:02 - INFO - ✓ Votos persistidos en datos\votos.json: 5 votos totales

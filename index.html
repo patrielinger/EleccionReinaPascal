@@ -54,47 +54,15 @@
         // Cargar datos del servidor al iniciar
         async function loadServerData() {
             try {
-                const candResponse = await fetch('/api/load-candidatas');
-                if (candResponse.ok) {
-                    const data = await candResponse.json();
-                    if (data.success) {
-                        localStorage.setItem('candidatas', JSON.stringify(data.candidatas));
-                    }
-                }
-                
-                const usersResponse = await fetch('/api/load-usuarios');
-                if (usersResponse.ok) {
-                    const data = await usersResponse.json();
-                    if (data.success) {
-                        localStorage.setItem('usuarios', JSON.stringify(data.usuarios));
-                    }
-                }
-                
-                const votosResponse = await fetch('/api/load-votos');
-                if (votosResponse.ok) {
-                    const data = await votosResponse.json();
-                    if (data.success) {
-                        localStorage.setItem('votos', JSON.stringify(data.votos));
-                    }
-                }
+                await fetch('/api/load-candidatas', { cache: 'no-store' });
+                await fetch('/api/load-usuarios', { cache: 'no-store' });
+                await fetch('/api/load-votos', { cache: 'no-store' });
             } catch (e) {
-                console.log('Datos del servidor no disponibles, usando localStorage');
+                console.log('Datos del servidor no disponibles:', e);
             }
         }
-        
-        // Cargar datos del servidor al cargar la página
+
         loadServerData();
-        
-        // Inicializar datos si no existen
-        if (!localStorage.getItem('usuarios')) {
-            localStorage.setItem('usuarios', JSON.stringify([{ username: 'admin', password: 'admin', role: 'admin' }]));
-        }
-        if (!localStorage.getItem('candidatas')) {
-            localStorage.setItem('candidatas', JSON.stringify([]));
-        }
-        if (!localStorage.getItem('votos')) {
-            localStorage.setItem('votos', JSON.stringify({}));
-        }
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -153,32 +121,8 @@
                 }
             } catch (error) {
                 console.error('Error:', error);
-                // Si el servidor falla, usar método local (fallback)
-                const usuarios = JSON.parse(localStorage.getItem('usuarios'));
-                const user = usuarios.find(u => u.username === username && u.password === password);
-                if (user) {
-                    const sessionUser = {
-                        username: user.username,
-                        role: user.role,
-                        session_id: 'local_' + Date.now(),
-                        device_id: deviceId
-                    };
-                    localStorage.setItem('currentUser', JSON.stringify(sessionUser));
-                    
-                    messageDiv.textContent = '✓ Acceso concedido';
-                    messageDiv.style.color = '#4CAF50';
-                    
-                    setTimeout(() => {
-                        if (user.role === 'admin') {
-                            window.location.href = `admin.html?session_id=${sessionUser.session_id}&device_id=${deviceId}`;
-                        } else {
-                            window.location.href = 'user.html';
-                        }
-                    }, 500);
-                } else {
-                    messageDiv.textContent = '❌ Usuario o contraseña incorrectos';
-                    messageDiv.style.color = '#f44336';
-                }
+                messageDiv.textContent = '❌ No fue posible conectar con el servidor. Intenta de nuevo cuando la red esté disponible.';
+                messageDiv.style.color = '#f44336';
             }
         });
     </script>

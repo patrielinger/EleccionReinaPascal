@@ -1,0 +1,41 @@
+15/05/26 11:42:34 - INFO - ✓ Datos cargados en memoria
+15/05/26 11:42:34 - INFO - ✓ Guardado automático iniciado (cada 30 segundos)
+15/05/26 11:42:34 - INFO - ============================================================
+15/05/26 11:42:34 - INFO - 🎓 SERVIDOR DE ELECCIONES (v2)
+15/05/26 11:42:34 - INFO - ============================================================
+15/05/26 11:42:34 - INFO - 
+✓ Escuchando en puerto 3000
+15/05/26 11:42:34 - INFO - ✓ Solo redes locales permitidas
+15/05/26 11:42:34 - INFO - ✓ Datos persistentes en carpeta 'datos/'
+15/05/26 11:42:34 - INFO - ✓ Logs guardados en: logs\15_05_26_11_42.log
+15/05/26 11:42:34 - INFO - 
+🌐 Acceso local: http://localhost:3000
+15/05/26 11:42:34 - INFO - 📱 Acceso desde red: http://192.168.100.68:3000
+15/05/26 11:42:34 - INFO - 
+💡 Comparte la URL de red con otros dispositivos en la misma red WiFi
+
+15/05/26 11:42:34 - INFO - 🌐 IP CONECTADA: 192.168.100.55
+15/05/26 11:42:34 - INFO - 🌐 IP CONECTADA: 127.0.0.1
+15/05/26 11:42:35 - INFO - ✓ Votos persistidos en datos\votos.json: 4 votos totales
+15/05/26 11:42:43 - INFO - ✓ Usuario pato inició sesión
+15/05/26 11:42:50 - INFO - ✓ Votos persistidos en datos\votos.json: 3 votos totales
+15/05/26 11:42:53 - INFO - ✓ Votos persistidos en datos\votos.json: 3 votos totales
+15/05/26 11:42:55 - INFO - ✓ Votos persistidos en datos\votos.json: 3 votos totales
+15/05/26 11:42:58 - INFO - ✓ Votos persistidos en datos\votos.json: 4 votos totales
+15/05/26 11:43:07 - INFO - ✓ Votos persistidos en datos\votos.json: 5 votos totales
+15/05/26 11:43:14 - INFO - ✓ Votos persistidos en datos\votos.json: 4 votos totales
+15/05/26 11:43:22 - INFO - ✓ Votos persistidos en datos\votos.json: 5 votos totales
+15/05/26 11:43:54 - INFO - ✓ Usuario admin inició sesión
+15/05/26 11:44:11 - INFO - ✓ Usuario barrios inició sesión
+15/05/26 11:44:17 - INFO - ✓ Votos persistidos en datos\votos.json: 6 votos totales
+15/05/26 11:44:20 - INFO - ✓ Votos persistidos en datos\votos.json: 7 votos totales
+15/05/26 11:44:23 - INFO - ✓ Votos persistidos en datos\votos.json: 8 votos totales
+15/05/26 11:44:26 - INFO - ✓ Votos persistidos en datos\votos.json: 9 votos totales
+15/05/26 11:44:30 - INFO - ✓ Votos persistidos en datos\votos.json: 10 votos totales
+15/05/26 11:44:51 - INFO - ✓ Votos persistidos en datos\votos.json: 9 votos totales
+15/05/26 11:44:55 - INFO - ✓ Votos persistidos en datos\votos.json: 9 votos totales
+15/05/26 11:44:58 - INFO - ✓ Votos persistidos en datos\votos.json: 9 votos totales
+15/05/26 11:45:01 - INFO - ✓ Votos persistidos en datos\votos.json: 9 votos totales
+15/05/26 11:45:12 - INFO - ✓ Votos persistidos en datos\votos.json: 8 votos totales
+15/05/26 11:45:29 - INFO - ✓ Votos persistidos en datos\votos.json: 9 votos totales
+15/05/26 11:45:36 - INFO - ✓ Votos persistidos en datos\votos.json: 6 votos totales

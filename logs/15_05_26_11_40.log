@@ -1,0 +1,21 @@
+15/05/26 11:40:01 - INFO - ✓ Datos cargados en memoria
+15/05/26 11:40:01 - INFO - ✓ Guardado automático iniciado (cada 30 segundos)
+15/05/26 11:40:01 - INFO - ============================================================
+15/05/26 11:40:01 - INFO - 🎓 SERVIDOR DE ELECCIONES (v2)
+15/05/26 11:40:01 - INFO - ============================================================
+15/05/26 11:40:01 - INFO - 
+✓ Escuchando en puerto 3000
+15/05/26 11:40:01 - INFO - ✓ Solo redes locales permitidas
+15/05/26 11:40:01 - INFO - ✓ Datos persistentes en carpeta 'datos/'
+15/05/26 11:40:01 - INFO - ✓ Logs guardados en: logs\15_05_26_11_40.log
+15/05/26 11:40:01 - INFO - 
+🌐 Acceso local: http://localhost:3000
+15/05/26 11:40:01 - INFO - 📱 Acceso desde red: http://192.168.100.68:3000
+15/05/26 11:40:01 - INFO - 
+💡 Comparte la URL de red con otros dispositivos en la misma red WiFi
+
+15/05/26 11:40:02 - INFO - 🌐 IP CONECTADA: 127.0.0.1
+15/05/26 11:40:02 - INFO - 🌐 IP CONECTADA: 192.168.100.55
+15/05/26 11:40:11 - INFO - ✓ Usuario pato inició sesión
+15/05/26 11:40:18 - INFO - ✓ Votos persistidos en datos\votos.json: 5 votos totales
+15/05/26 11:40:24 - INFO - ✓ Votos persistidos en datos\votos.json: 5 votos totales

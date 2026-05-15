@@ -2,26 +2,31 @@
   {
     "username": "admin",
     "password": "admin",
-    "role": "admin"
+    "role": "admin",
+    "id": "user_09bb139163d2434dafa222b4c75b0315"
   },
   {
     "username": "pato",
     "password": "123",
-    "role": "user"
+    "role": "user",
+    "id": "user_3656140fb9bc4c0098b993425317c8c2"
   },
   {
     "username": "carlos",
     "password": "123",
-    "role": "user"
+    "role": "user",
+    "id": "user_6539578411514630a481f589bad937f1"
   },
   {
     "username": "barrios",
     "password": "123",
-    "role": "user"
+    "role": "user",
+    "id": "user_403c255a413e48ed80bb9e9b5f7e702d"
   },
   {
     "username": "matt",
     "password": "123",
-    "role": "user"
+    "role": "user",
+    "id": "user_fed34af0def843a191b89fb61a7d6cc3"
   }
 ]
