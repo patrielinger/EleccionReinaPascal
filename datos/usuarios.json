@@ -1,32 +1,26 @@
 [
   {
-    "username": "admin",
-    "password": "admin",
-    "role": "admin",
-    "id": "user_09bb139163d2434dafa222b4c75b0315"
-  },
-  {
+    "id": "user_1779367121117_0eb7xqitp",
     "username": "pato",
     "password": "123",
-    "role": "user",
-    "id": "user_3656140fb9bc4c0098b993425317c8c2"
+    "role": "user"
   },
   {
+    "id": "user_1779367124897_padkdb6s7",
     "username": "carlos",
     "password": "123",
-    "role": "user",
-    "id": "user_6539578411514630a481f589bad937f1"
+    "role": "user"
   },
   {
+    "id": "user_1779367129342_rez1r90bx",
     "username": "barrios",
     "password": "123",
-    "role": "user",
-    "id": "user_403c255a413e48ed80bb9e9b5f7e702d"
+    "role": "user"
   },
   {
+    "id": "user_1779367132796_v0b03p6ac",
     "username": "matt",
     "password": "123",
-    "role": "user",
-    "id": "user_fed34af0def843a191b89fb61a7d6cc3"
+    "role": "user"
   }
 ]

@@ -1,1 +1,22 @@
-[]
+[
+  {
+    "name": "Reina",
+    "color": "#ff6fe7"
+  },
+  {
+    "name": "Primera Princesa",
+    "color": "#e6fa33"
+  },
+  {
+    "name": "Segunda Princesa",
+    "color": "#e6fa33"
+  },
+  {
+    "name": "Primera Dama de Honor",
+    "color": "#1fff40"
+  },
+  {
+    "name": "Segunda Dama de Honor",
+    "color": "#1fff40"
+  }
+]

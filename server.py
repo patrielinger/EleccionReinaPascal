@@ -23,722 +23,595 @@ ACTIVE_SESSIONS = {}
 CONNECTED_IPS = set()
 VOTING_ENABLED = True
 
-# Datos en memoria para optimización
+# Datos en memoria
 CANDIDATAS = []
 USUARIOS = []
 VOTOS = {}
 CATEGORIAS = []
 
-# Lock para evitar race conditions
-VOTOS_LOCK = threading.RLock()  # RLock permite múltiples llamadas del mismo thread
+# Lock único para todas las estructuras compartidas
+DATA_LOCK = threading.RLock()
 
 # Archivos de datos
 DATA_DIR = 'datos'
 os.makedirs(DATA_DIR, exist_ok=True)
 CANDIDATAS_FILE = os.path.join(DATA_DIR, 'candidatas.json')
-USUARIOS_FILE = os.path.join(DATA_DIR, 'usuarios.json')
-VOTOS_FILE = os.path.join(DATA_DIR, 'votos.json')
+USUARIOS_FILE  = os.path.join(DATA_DIR, 'usuarios.json')
+VOTOS_FILE     = os.path.join(DATA_DIR, 'votos.json')
 CATEGORIES_FILE = os.path.join(DATA_DIR, 'categorias.json')
 
 DEFAULT_CATEGORIES = [
-    {'name': 'Reina', 'color': '#ff6fe7'},
-    {'name': 'Primera Princesa', 'color': '#e6fa33'},
-    {'name': 'Segunda Princesa', 'color': '#e6fa33'},
+    {'name': 'Reina',                 'color': '#ff6fe7'},
+    {'name': 'Primera Princesa',      'color': '#e6fa33'},
+    {'name': 'Segunda Princesa',      'color': '#e6fa33'},
     {'name': 'Primera Dama de Honor', 'color': '#1fff40'},
-    {'name': 'Segunda Dama de Honor', 'color': '#1fff40'}
+    {'name': 'Segunda Dama de Honor', 'color': '#1fff40'},
 ]
 
+# ---------------------------------------------------------------------------
+# Carga y guardado
+# ---------------------------------------------------------------------------
+
 def load_data():
-    """Carga todos los datos en memoria al iniciar"""
     global CANDIDATAS, USUARIOS, VOTOS, CATEGORIAS
-    try:
-        if os.path.exists(CANDIDATAS_FILE):
-            with open(CANDIDATAS_FILE, 'r') as f:
-                CANDIDATAS = json.load(f)
-    except:
-        CANDIDATAS = []
-    
-    try:
-        if os.path.exists(USUARIOS_FILE):
-            with open(USUARIOS_FILE, 'r') as f:
-                USUARIOS = json.load(f)
-                # Migración: Agregar IDs únicos a usuarios que no los tengan
+    with DATA_LOCK:
+        try:
+            if os.path.exists(CANDIDATAS_FILE):
+                with open(CANDIDATAS_FILE, 'r', encoding='utf-8') as f:
+                    CANDIDATAS = json.load(f)
+        except Exception:
+            CANDIDATAS = []
+
+        try:
+            if os.path.exists(USUARIOS_FILE):
+                with open(USUARIOS_FILE, 'r', encoding='utf-8') as f:
+                    USUARIOS = json.load(f)
                 for user in USUARIOS:
                     if 'id' not in user:
                         user['id'] = f"user_{uuid.uuid4().hex}"
-    except:
-        USUARIOS = [{'id': 'user_admin_001', 'username': 'admin', 'password': 'admin', 'role': 'admin'}]
-    
-    try:
-        if os.path.exists(VOTOS_FILE):
-            with open(VOTOS_FILE, 'r') as f:
-                VOTOS = json.load(f)
-    except:
-        VOTOS = {}
-    
-    try:
-        if os.path.exists(CATEGORIES_FILE):
-            with open(CATEGORIES_FILE, 'r') as f:
-                CATEGORIAS = json.load(f)
-    except:
-        CATEGORIAS = DEFAULT_CATEGORIES.copy()
+        except Exception:
+            USUARIOS = [{'id': 'user_admin_001', 'username': 'admin',
+                         'password': 'admin', 'role': 'admin'}]
 
-def save_data():
-    """Guarda todos los datos en archivos periódicamente"""
+        try:
+            if os.path.exists(VOTOS_FILE):
+                with open(VOTOS_FILE, 'r', encoding='utf-8') as f:
+                    VOTOS = json.load(f)
+        except Exception:
+            VOTOS = {}
+
+        try:
+            if os.path.exists(CATEGORIES_FILE):
+                with open(CATEGORIES_FILE, 'r', encoding='utf-8') as f:
+                    raw = json.load(f)
+                    CATEGORIAS = _normalize_categorias(raw)
+        except Exception:
+            CATEGORIAS = DEFAULT_CATEGORIES.copy()
+
+
+def _normalize_categorias(raw):
+    result = []
+    for c in raw:
+        if isinstance(c, str):
+            result.append({'name': c, 'color': '#ff6fe7'})
+        elif isinstance(c, dict) and c.get('name'):
+            result.append({'name': str(c['name']).strip(), 'color': c.get('color', '#ff6fe7')})
+    return result or DEFAULT_CATEGORIES.copy()
+
+
+def _flush_to_disk():
+    """Escribe todos los datos a disco. Debe llamarse con DATA_LOCK tomado."""
     try:
-        with open(CANDIDATAS_FILE, 'w') as f:
-            json.dump(CANDIDATAS, f, indent=2)
-        with open(USUARIOS_FILE, 'w') as f:
-            json.dump(USUARIOS, f, indent=2)
-        with open(VOTOS_FILE, 'w') as f:
-            json.dump(VOTOS, f, indent=2)
-        with open(CATEGORIES_FILE, 'w') as f:
-            json.dump(CATEGORIAS, f, indent=2)
+        with open(CANDIDATAS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(CANDIDATAS, f, indent=2, ensure_ascii=False)
+        with open(USUARIOS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(USUARIOS, f, indent=2, ensure_ascii=False)
+        with open(VOTOS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(VOTOS, f, indent=2, ensure_ascii=False)
+        with open(CATEGORIES_FILE, 'w', encoding='utf-8') as f:
+            json.dump(CATEGORIAS, f, indent=2, ensure_ascii=False)
     except Exception as e:
         logging.error(f"Error guardando datos: {e}")
 
-def cleanup_expired_sessions():
-    """Limpia sesiones expiradas cada minuto"""
-    current_time = time.time()
-    expired = [sid for sid, session in ACTIVE_SESSIONS.items() if current_time - session['timestamp'] > 3600]  # 1 hora
-    for sid in expired:
-        del ACTIVE_SESSIONS[sid]
-    if expired:
-        logging.info(f"Limpiadas {len(expired)} sesiones expiradas")
 
 def periodic_save():
-    """Guarda datos cada 30 segundos"""
-    save_data()
-    cleanup_expired_sessions()
+    """Guarda datos y limpia sesiones expiradas (llamado cada 30 s)."""
+    with DATA_LOCK:
+        _flush_to_disk()
+        current_time = time.time()
+        expired = [sid for sid, s in list(ACTIVE_SESSIONS.items())
+                   if current_time - s['timestamp'] > 3600]
+        for sid in expired:
+            del ACTIVE_SESSIONS[sid]
+        if expired:
+            logging.info(f"Limpiadas {len(expired)} sesiones expiradas")
 
-# Funciones legacy para compatibilidad
+# ---------------------------------------------------------------------------
+# Funciones de negocio (todas con DATA_LOCK)
+# ---------------------------------------------------------------------------
+
 def load_candidatas():
-    return CANDIDATAS
+    with DATA_LOCK:
+        return list(CANDIDATAS)
 
 def save_candidatas(candidatas):
     global CANDIDATAS
-    CANDIDATAS = candidatas
-    # Logging de cambios
-    logging.info(f"✓ Candidatas guardadas: {len(candidatas)} candidatas")
+    with DATA_LOCK:
+        CANDIDATAS = candidatas
+    logging.info(f"✓ Candidatas actualizadas: {len(candidatas)}")
 
 def load_usuarios():
-    return USUARIOS
+    with DATA_LOCK:
+        return list(USUARIOS)
 
 def save_usuarios(usuarios):
     global USUARIOS
-    USUARIOS = usuarios
-    logging.info(f"✓ Usuarios guardados: {len(usuarios)} usuarios")
+    with DATA_LOCK:
+        USUARIOS = usuarios
+    logging.info(f"✓ Usuarios actualizados: {len(usuarios)}")
 
 def load_votos():
-    return VOTOS
+    with DATA_LOCK:
+        return dict(VOTOS)
 
-def save_votos(votos):
+def save_votos(votos_patch):
+    """Actualiza solo los votos del/los usuarios incluidos en votos_patch."""
     global VOTOS
-    VOTOS = votos
-    # Logging de cambios en votos
-    total_votes = sum(len(user_votes) for user_votes in votos.values())
-    logging.info(f"✓ Votos guardados: {total_votes} votos totales")
-
-def clear_all_votes():
-    global VOTOS
-    with VOTOS_LOCK:
-        VOTOS = {}
-    logging.info("🧹 Todos los votos han sido eliminados por el administrador")
-
-
-
-
-
-def save_votos(votos):
-    """Actualiza votos de forma segura, reemplazando el registro completo del usuario."""
-    global VOTOS
-    with VOTOS_LOCK:
-        for username, user_votes in votos.items():
-            # Reemplazar todo el histórico de votos del usuario para reflejar eliminaciones y cambios completos.
+    with DATA_LOCK:
+        for username, user_votes in votos_patch.items():
             VOTOS[username] = user_votes if isinstance(user_votes, dict) else {}
-        
-        total_votes = sum(len(user_votes) for user_votes in VOTOS.values())
+        total = sum(len(v) for v in VOTOS.values())
         try:
             with open(VOTOS_FILE, 'w', encoding='utf-8') as f:
                 json.dump(VOTOS, f, indent=2, ensure_ascii=False)
-            logging.info(f"✓ Votos persistidos en {VOTOS_FILE}: {total_votes} votos totales")
         except Exception as e:
-            logging.error(f"Error guardando votos en archivo: {e}")
+            logging.error(f"Error persistiendo votos: {e}")
             raise
-        return True
-
-def load_categorias():
-    def normalize(categoria):
-        if isinstance(categoria, str):
-            return {'name': categoria, 'color': '#ff6fe7'}
-        if isinstance(categoria, dict) and categoria.get('name'):
-            return {'name': str(categoria['name']).strip(), 'color': categoria.get('color', '#ff6fe7')}
-        return None
-
-    if os.path.exists(CATEGORIES_FILE):
-        try:
-            with open(CATEGORIES_FILE, 'r') as f:
-                categorias = json.load(f)
-                if isinstance(categorias, list) and categorias:
-                    normalized = [normalize(c) for c in categorias]
-                    return [c for c in normalized if c]
-        except:
-            pass
-    return DEFAULT_CATEGORIES.copy()
-
-
-def save_categorias(categorias):
-    anteriores = load_categorias()
-    anteriores_names = {c['name'] for c in anteriores}
-    nuevas_names = {c['name'] for c in categorias if isinstance(c, dict) and c.get('name')}
-
-    for categoria in categorias:
-        if isinstance(categoria, dict) and categoria.get('name') and categoria['name'] not in anteriores_names:
-            logging.info(f"➕ Categoría AGREGADA: '{categoria['name']}'")
-    for categoria in anteriores:
-        if categoria['name'] not in nuevas_names:
-            logging.info(f"➖ Categoría ELIMINADA: '{categoria['name']}'")
-
-    with open(CATEGORIES_FILE, 'w') as f:
-        json.dump(categorias, f, indent=2)
+    logging.info(f"✓ Votos actualizados: {total} totales")
 
 def clear_all_votes():
     global VOTOS
-    VOTOS = {}
-    logging.info("🧹 Todos los votos han sido eliminados por el administrador")
+    with DATA_LOCK:
+        VOTOS = {}
+        try:
+            with open(VOTOS_FILE, 'w', encoding='utf-8') as f:
+                json.dump({}, f)
+        except Exception as e:
+            logging.error(f"Error limpiando votos: {e}")
+    logging.info("🧹 Todos los votos eliminados")
+
+def load_categorias():
+    with DATA_LOCK:
+        return list(CATEGORIAS)
+
+def save_categorias(categorias):
+    global CATEGORIAS
+    normalized = _normalize_categorias(categorias)
+    with DATA_LOCK:
+        anteriores = {c['name'] for c in CATEGORIAS}
+        nuevas     = {c['name'] for c in normalized}
+        for n in nuevas - anteriores:
+            logging.info(f"➕ Categoría AGREGADA: '{n}'")
+        for n in anteriores - nuevas:
+            logging.info(f"➖ Categoría ELIMINADA: '{n}'")
+        CATEGORIAS = normalized
+        try:
+            with open(CATEGORIES_FILE, 'w', encoding='utf-8') as f:
+                json.dump(CATEGORIAS, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            logging.error(f"Error guardando categorías: {e}")
+
+# ---------------------------------------------------------------------------
+# Handler HTTP
+# ---------------------------------------------------------------------------
 
 class SecureHandler(http.server.SimpleHTTPRequestHandler):
-    
+
+    # --- silenciar logs verbosos de acceso (opcional, reduce ruido en consola)
+    def log_message(self, format, *args):
+        pass  # Comentar esta línea si querés ver todos los accesos
+
     def is_local_ip(self, ip_str):
         try:
             ip = ipaddress.ip_address(ip_str)
-            local_networks = [
-                ipaddress.ip_network('127.0.0.0/8'),
-                ipaddress.ip_network('192.168.0.0/16'),
-                ipaddress.ip_network('10.0.0.0/8'),
-                ipaddress.ip_network('172.16.0.0/12'),
-                ipaddress.ip_network('169.254.0.0/16'),
-            ]
-            return any(ip in network for network in local_networks)
+            for net in ('127.0.0.0/8', '192.168.0.0/16', '10.0.0.0/8',
+                        '172.16.0.0/12', '169.254.0.0/16'):
+                if ip in ipaddress.ip_network(net):
+                    return True
         except ValueError:
-            return False
-    
+            pass
+        return False
+
     def send_json(self, status, data):
-        json_data = json.dumps(data).encode('utf-8')
+        body = json.dumps(data, ensure_ascii=False).encode('utf-8')
         self.send_response(status)
-        self.send_header('Content-type', 'application/json; charset=utf-8')
-        self.send_header('Content-Length', str(len(json_data)))
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.send_header('Content-Length', str(len(body)))
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
-        self.wfile.write(json_data)
-    
+        self.wfile.write(body)
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
+
+    # --- GET APIs -----------------------------------------------------------
+
     def handle_api_get(self, path):
-        """Maneja GET para APIs"""
         if path == '/api/load-candidatas':
-            try:
-                candidatas = load_candidatas()
-                self.send_json(200, {'success': True, 'candidatas': candidatas})
-                return True
-            except Exception as e:
-                self.send_json(400, {'error': str(e)})
-                return True
-        
-        elif path == '/api/load-usuarios':
-            try:
-                usuarios = load_usuarios()
-                self.send_json(200, {'success': True, 'usuarios': usuarios})
-                return True
-            except Exception as e:
-                self.send_json(400, {'error': str(e)})
-                return True
-        
-        elif path == '/api/load-categorias':
-            try:
-                categorias = load_categorias()
-                self.send_json(200, {'success': True, 'categorias': categorias})
-                return True
-            except Exception as e:
-                self.send_json(400, {'error': str(e)})
-                return True
-        
-        elif path == '/api/load-votos':
-            try:
-                votos = load_votos()
-                self.send_json(200, {'success': True, 'votos': votos})
-                return True
-            except Exception as e:
-                self.send_json(400, {'error': str(e)})
-                return True
-        
-        elif path == '/api/load-data':
-            try:
-                candidatas = load_candidatas()
-                votos = load_votos()
-                categorias = load_categorias()
-                self.send_json(200, {
-                    'success': True, 
-                    'candidatas': candidatas,
-                    'votos': votos,
-                    'categorias': categorias
-                })
-                return True
-            except Exception as e:
-                self.send_json(400, {'error': str(e)})
-                return True
-        
-        elif path == '/api/get-voting-status':
-            try:
-                self.send_json(200, {
-                    'success': True,
-                    'voting_enabled': VOTING_ENABLED
-                })
-                return True
-            except Exception as e:
-                self.send_json(400, {'error': str(e)})
-                return True
-        
-        elif path == '/api/get-network-info':
-            try:
-                client_ip = self.client_address[0]
-                server_ip = get_local_ip()
-                self.send_json(200, {
-                    'success': True,
-                    'server_ip': server_ip,
-                    'client_ip': client_ip,
-                    'port': PORT
-                })
-                return True
-            except Exception as e:
-                self.send_json(400, {'error': str(e)})
-                return True
-        
+            self.send_json(200, {'success': True, 'candidatas': load_candidatas()})
+            return True
+
+        if path == '/api/load-usuarios':
+            self.send_json(200, {'success': True, 'usuarios': load_usuarios()})
+            return True
+
+        if path == '/api/load-categorias':
+            self.send_json(200, {'success': True, 'categorias': load_categorias()})
+            return True
+
+        if path == '/api/load-votos':
+            self.send_json(200, {'success': True, 'votos': load_votos()})
+            return True
+
+        if path == '/api/load-data':
+            # Un solo endpoint en lugar de 3 llamadas separadas
+            self.send_json(200, {
+                'success': True,
+                'candidatas': load_candidatas(),
+                'votos':      load_votos(),
+                'categorias': load_categorias(),
+            })
+            return True
+
+        if path == '/api/get-voting-status':
+            self.send_json(200, {'success': True, 'voting_enabled': VOTING_ENABLED})
+            return True
+
+        if path == '/api/get-network-info':
+            self.send_json(200, {
+                'success':   True,
+                'server_ip': get_local_ip(),
+                'client_ip': self.client_address[0],
+                'port':      PORT,
+            })
+            return True
+
         return False
-    
+
+    # --- POST ---------------------------------------------------------------
+
+    def do_HEAD(self):
+        parsed = urlparse(self.path)
+        if parsed.path == '/admin.html':
+            params = dict(qc.split('=') for qc in parsed.query.split('&') if '=' in qc) if parsed.query else {}
+            session = ACTIVE_SESSIONS.get(params.get('session_id'))
+            if not session or session.get('device_id') != params.get('device_id') or session.get('role') != 'admin':
+                self.send_response(302)
+                self.send_header('Location', '/index.html')
+                self.end_headers()
+                return
+
+    def do_GET(self):
+        client_ip = self.client_address[0]
+        if client_ip not in CONNECTED_IPS:
+            CONNECTED_IPS.add(client_ip)
+            logging.info(f"🌐 Nueva IP: {client_ip}")
+
+        if not self.is_local_ip(client_ip):
+            self.send_response(403)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(b'<h1>Acceso Denegado</h1>')
+            return
+
+        parsed = urlparse(self.path)
+        path   = parsed.path
+
+        if self.handle_api_get(path):
+            return
+
+        if path == '/admin.html':
+            params  = dict(qc.split('=') for qc in parsed.query.split('&') if '=' in qc) if parsed.query else {}
+            session = ACTIVE_SESSIONS.get(params.get('session_id'))
+            if not session or session.get('device_id') != params.get('device_id') or session.get('role') != 'admin':
+                self.send_response(302)
+                self.send_header('Location', '/index.html' if not session else '/user.html')
+                self.end_headers()
+                return
+
+        if self.path == '/':
+            self.path = '/index.html'
+
+        file_path = parsed.path.lstrip('/')
+        if '..' in file_path:
+            self.send_response(403); self.end_headers(); return
+        _, ext = os.path.splitext(file_path)
+        if ext and ext not in ALLOWED_EXTENSIONS:
+            self.send_response(403); self.end_headers(); return
+
+        super().do_GET()
+
+    def do_POST(self):
+        client_ip = self.client_address[0]
+        if client_ip not in CONNECTED_IPS:
+            CONNECTED_IPS.add(client_ip)
+            logging.info(f"🌐 Nueva IP: {client_ip}")
+
+        if not self.is_local_ip(client_ip):
+            self.send_json(403, {'error': 'Acceso denegado'})
+            return
+
+        parsed  = urlparse(self.path)
+        path    = parsed.path
+        ctype   = self.headers.get('Content-Type', '')
+        clen    = int(self.headers.get('Content-Length', 0))
+
+        if path == '/api/upload-candidata-foto':
+            self.handle_upload_candidata_foto(ctype, clen)
+            return
+
+        body = self.rfile.read(clen).decode('utf-8') if clen else '{}'
+        try:
+            data = json.loads(body)
+        except json.JSONDecodeError:
+            self.send_json(400, {'error': 'JSON inválido'})
+            return
+
+        # --- rutas POST -----------------------------------------------------
+        if path == '/api/save-candidatas':
+            save_candidatas(data.get('candidatas', []))
+            self.send_json(200, {'success': True})
+
+        elif path == '/api/save-usuarios':
+            save_usuarios(data.get('usuarios', []))
+            self.send_json(200, {'success': True})
+
+        elif path == '/api/save-votos':
+            username   = data.get('username')
+            votos_data = data.get('votos', {})
+            with DATA_LOCK:
+                user = next((u for u in USUARIOS if u['username'] == username), None)
+            if not user:
+                self.send_json(403, {'error': 'Usuario no autenticado'})
+                return
+            save_votos({username: votos_data.get(username, {})})
+            self.send_json(200, {'success': True})
+
+        elif path == '/api/save-categorias':
+            save_categorias(data.get('categorias', []))
+            self.send_json(200, {'success': True})
+
+        elif path == '/api/clear-all-votes':
+            clear_all_votes()
+            self.send_json(200, {'success': True})
+
+        elif path == '/api/set-voting-status':
+            global VOTING_ENABLED
+            VOTING_ENABLED = bool(data.get('enabled', False))
+            estado = 'activadas' if VOTING_ENABLED else 'bloqueadas'
+            logging.info(f"🔒 Votaciones {estado}")
+            self.send_json(200, {'success': True, 'voting_enabled': VOTING_ENABLED})
+
+        elif path == '/api/login':
+            self._handle_login(data)
+
+        elif path == '/api/verify-session':
+            self._handle_verify_session(data)
+
+        elif path == '/api/logout':
+            self._handle_logout(data)
+
+        else:
+            self.send_json(404, {'error': 'Not found'})
+
+    # --- helpers de sesión --------------------------------------------------
+
+    def _handle_login(self, data):
+        username  = data.get('username')
+        password  = data.get('password')
+        device_id = data.get('device_id')
+
+        with DATA_LOCK:
+            user = next((u for u in USUARIOS
+                         if u['username'] == username and u['password'] == password), None)
+            if not user:
+                self.send_json(401, {'error': 'Credenciales inválidas'})
+                return
+
+            active = [(sid, s) for sid, s in ACTIVE_SESSIONS.items() if s['username'] == username]
+            other  = [s for _, s in active if s['device_id'] != device_id]
+            if other:
+                self.send_json(403, {
+                    'success': False,
+                    'error': 'Este usuario ya está conectado desde otro dispositivo',
+                    'allowed_devices': 0,
+                })
+                return
+
+            # Eliminar sesiones anteriores del mismo dispositivo
+            for sid, s in active:
+                if s['device_id'] == device_id:
+                    del ACTIVE_SESSIONS[sid]
+
+            session_id = str(uuid.uuid4())
+            ACTIVE_SESSIONS[session_id] = {
+                'username':  username,
+                'device_id': device_id,
+                'timestamp': time.time(),
+                'role':      user.get('role', 'user'),
+            }
+
+        self.send_json(200, {
+            'success':    True,
+            'username':   username,
+            'device_id':  device_id,
+            'session_id': session_id,
+            'role':       user.get('role', 'user'),
+        })
+        logging.info(f"✓ Login: {username} ({device_id[:8]}…)")
+
+    def _handle_verify_session(self, data):
+        username   = data.get('username')
+        session_id = data.get('session_id')
+        device_id  = data.get('device_id')
+
+        with DATA_LOCK:
+            session = ACTIVE_SESSIONS.get(session_id)
+            if session and session['username'] == username and session['device_id'] == device_id:
+                session['timestamp'] = time.time()
+                self.send_json(200, {'valid': True, 'role': session.get('role', 'user')})
+            else:
+                self.send_json(200, {'valid': False})
+
+    def _handle_logout(self, data):
+        username = data.get('username')
+        with DATA_LOCK:
+            to_remove = [sid for sid, s in ACTIVE_SESSIONS.items() if s['username'] == username]
+            for sid in to_remove:
+                del ACTIVE_SESSIONS[sid]
+        self.send_json(200, {'success': True})
+        logging.info(f"✓ Logout: {username}")
+
+    # --- upload foto --------------------------------------------------------
+
     def handle_upload_candidata_foto(self, content_type, content_length):
-        """Maneja carga de archivo de foto de candidata"""
         try:
             if 'multipart/form-data' not in content_type:
                 self.send_json(400, {'error': 'Content-Type debe ser multipart/form-data'})
                 return
-            
-            # Extraer boundary
-            boundary_match = re.search(r'boundary=([^\s;]+)', content_type)
-            if not boundary_match:
-                self.send_json(400, {'error': 'Boundary no encontrado en Content-Type'})
+            m = re.search(r'boundary=([^\s;]+)', content_type)
+            if not m:
+                self.send_json(400, {'error': 'Boundary no encontrado'})
                 return
-            boundary = boundary_match.group(1).strip('"')
-            
-            # Leer datos
-            body = self.rfile.read(content_length)
-            
-            # Parsear campos multipart simple
-            parts = body.split(f'--{boundary}'.encode())
-            numero = None
-            file_data = None
-            filename = None
-            
+            boundary = m.group(1).strip('"')
+            body     = self.rfile.read(content_length)
+            parts    = body.split(f'--{boundary}'.encode())
+            numero = file_data = filename = None
+
             for part in parts:
                 if b'Content-Disposition:' not in part:
                     continue
-                    
-                headers_end = part.find(b'\r\n\r\n')
-                if headers_end == -1:
-                    headers_end = part.find(b'\n\n')
-                    if headers_end == -1:
-                        continue
-                    payload = part[headers_end+2:]
+                he = part.find(b'\r\n\r\n')
+                if he == -1:
+                    he = part.find(b'\n\n')
+                    payload = part[he+2:] if he != -1 else b''
                 else:
-                    payload = part[headers_end+4:]
-                
-                # Remover trailing boundary
-                if payload.endswith(b'\r\n'):
-                    payload = payload[:-2]
-                elif payload.endswith(b'\n'):
-                    payload = payload[:-1]
-                
-                # Extraer nombre del campo
-                name_match = re.search(rb'name="([^"]+)"', part[:headers_end])
-                if not name_match:
+                    payload = part[he+4:]
+                payload = payload.rstrip(b'\r\n')
+
+                nm = re.search(rb'name="([^"]+)"', part[:he] if he != -1 else part)
+                if not nm:
                     continue
-                    
-                field_name = name_match.group(1).decode('utf-8')
-                
-                if field_name == 'numero':
+                field = nm.group(1).decode('utf-8')
+                if field == 'numero':
                     numero = payload.decode('utf-8').strip()
-                elif field_name == 'foto':
-                    filename_match = re.search(rb'filename="([^"]+)"', part[:headers_end])
-                    if filename_match:
-                        filename = filename_match.group(1).decode('utf-8')
+                elif field == 'foto':
+                    fm = re.search(rb'filename="([^"]+)"', part[:he] if he != -1 else part)
+                    if fm:
+                        filename  = fm.group(1).decode('utf-8')
                         file_data = payload
-            
-            if not filename or not numero or not file_data:
+
+            if not all([filename, numero, file_data]):
                 self.send_json(400, {'error': 'Falta foto o número de candidata'})
                 return
-            
             ext = os.path.splitext(filename)[1].lower()
-            if ext not in ['.png', '.jpg', '.jpeg', '.gif', '.svg']:
-                self.send_json(400, {'error': 'Extensión de imagen no permitida'})
+            if ext not in {'.png', '.jpg', '.jpeg', '.gif', '.svg'}:
+                self.send_json(400, {'error': 'Extensión no permitida'})
                 return
-            
-            safe_filename = f"{numero}{ext}"
+
             img_dir = os.path.join(os.getcwd(), 'img')
             os.makedirs(img_dir, exist_ok=True)
-            output_path = os.path.join(img_dir, safe_filename)
-            
-            with open(output_path, 'wb') as f:
+            safe_name = f"{numero}{ext}"
+            with open(os.path.join(img_dir, safe_name), 'wb') as f:
                 f.write(file_data)
-            
-            self.send_json(200, {'success': True, 'foto': f'img/{safe_filename}'})
+            self.send_json(200, {'success': True, 'foto': f'img/{safe_name}'})
         except Exception as e:
             self.send_json(400, {'error': str(e)})
-    
-    def do_HEAD(self):
-        parsed_path = urlparse(self.path)
-        path = parsed_path.path
-        
-        # Verificar permisos para admin.html
-        if path == '/admin.html':
-            query_params = dict(qc.split('=') for qc in parsed_path.query.split('&') if '=' in qc) if parsed_path.query else {}
-            session_id = query_params.get('session_id')
-            device_id = query_params.get('device_id')
-            
-            if not session_id or not device_id:
-                # Redirigir a login si no hay parámetros de sesión
-                self.send_response(302)
-                self.send_header('Location', '/index.html')
-                self.end_headers()
-                return
-            
-            # Verificar sesión y permisos
-            session = ACTIVE_SESSIONS.get(session_id)
-            if not session or session.get('device_id') != device_id or session.get('role') != 'admin':
-                # Usuario no autorizado - redirigir a user.html
-                self.send_response(302)
-                self.send_header('Location', '/user.html')
-                self.end_headers()
-                return
-        
-    def do_GET(self):
-        client_ip = self.client_address[0]
-        
-        # Registrar nueva conexión IP
-        if client_ip not in CONNECTED_IPS:
-            CONNECTED_IPS.add(client_ip)
-            logging.info(f"🌐 IP CONECTADA: {client_ip}")
-        
-        if not self.is_local_ip(client_ip):
-            self.send_response(403)
-            self.send_header('Content-type', 'text/html; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(b'<h1>Acceso Denegado</h1>')
-            return
-        
-        parsed_path = urlparse(self.path)
-        path = parsed_path.path
-        
-        # Intentar manejar API
-        if self.handle_api_get(path):
-            return
-        
-        # Verificar permisos para admin.html
-        if path == '/admin.html':
-            query_params = dict(qc.split('=') for qc in parsed_path.query.split('&') if '=' in qc) if parsed_path.query else {}
-            session_id = query_params.get('session_id')
-            device_id = query_params.get('device_id')
-            
-            if not session_id or not device_id:
-                # Redirigir a login si no hay parámetros de sesión
-                self.send_response(302)
-                self.send_header('Location', '/index.html')
-                self.end_headers()
-                return
-            
-            # Verificar sesión y permisos
-            session = ACTIVE_SESSIONS.get(session_id)
-            if not session or session.get('device_id') != device_id or session.get('role') != 'admin':
-                # Usuario no autorizado - redirigir a user.html
-                self.send_response(302)
-                self.send_header('Location', '/user.html')
-                self.end_headers()
-                return
-        
-        # Si "/"  ir a index.html
-        if self.path == '/':
-            self.path = '/index.html'
-        
-        # Servir archivo normalmente
-        file_path = parsed_path.path.lstrip('/')
-        
-        if '..' in file_path:
-            self.send_response(403)
-            self.end_headers()
-            return
-        
-        _, ext = os.path.splitext(file_path)
-        if ext and ext not in ALLOWED_EXTENSIONS:
-            self.send_response(403)
-            self.end_headers()
-            return
-        
-        super().do_GET()
-    
-    def do_POST(self):
-        client_ip = self.client_address[0]
-        
-        # Registrar nueva conexión IP
-        if client_ip not in CONNECTED_IPS:
-            CONNECTED_IPS.add(client_ip)
-            logging.info(f"🌐 IP CONECTADA: {client_ip}")
-        
-        if not self.is_local_ip(client_ip):
-            self.send_json(403, {'error': 'Acceso denegado'})
-            return
-        
-        parsed_path = urlparse(self.path)
-        path = parsed_path.path
-        
-        content_type = self.headers.get('Content-Type', '')
-        content_length = int(self.headers.get('Content-Length', 0))
-        
-        # Manejo especial para upload multipart
-        if path == '/api/upload-candidata-foto':
-            self.handle_upload_candidata_foto(content_type, content_length)
-            return
-        
-        # Para otros POST, decodificar como JSON
-        body = self.rfile.read(content_length).decode('utf-8')
-        data = json.loads(body) if body else {}
-        
-        if path == '/api/save-candidatas':
-            try:
-                save_candidatas(data.get('candidatas', []))
-                self.send_json(200, {'success': True})
-                logging.info(f"✓ Candidatas guardadas")
-            except Exception as e:
-                self.send_json(400, {'error': str(e)})
-        
-        elif path == '/api/save-usuarios':
-            try:
-                save_usuarios(data.get('usuarios', []))
-                self.send_json(200, {'success': True})
-                logging.info(f"✓ Usuarios guardados")
-            except Exception as e:
-                self.send_json(400, {'error': str(e)})
-        
-        elif path == '/api/save-votos':
-            try:
-                votos_data = data.get('votos', {})
-                username = data.get('username')
-                
-                # Validar que el usuario que envía los votos existe
-                user = next((u for u in USUARIOS if u['username'] == username), None)
-                if not user:
-                    self.send_json(403, {'error': 'Usuario no autenticado'})
-                    return
-                
-                # Asegurar que solo actualiza sus propios votos
-                user_votos = {username: votos_data.get(username, {})}
-                save_votos(user_votos)
-                
-                self.send_json(200, {'success': True})
-            except Exception as e:
-                self.send_json(400, {'error': str(e)})
-        
-        elif path == '/api/save-categorias':
-            try:
-                save_categorias(data.get('categorias', []))
-                self.send_json(200, {'success': True})
-                logging.info('✓ Categorías guardadas')
-            except Exception as e:
-                self.send_json(400, {'error': str(e)})
-        
-        elif path == '/api/clear-all-votes':
-            try:
-                clear_all_votes()
-                self.send_json(200, {'success': True})
-            except Exception as e:
-                self.send_json(400, {'error': str(e)})
-        
-        elif path == '/api/set-voting-status':
-            try:
-                global VOTING_ENABLED
-                VOTING_ENABLED = bool(data.get('enabled', False))
-                state = 'activadas' if VOTING_ENABLED else 'bloqueadas'
-                logging.info(f"🔒 Votaciones {state} por el administrador")
-                self.send_json(200, {'success': True, 'voting_enabled': VOTING_ENABLED})
-            except Exception as e:
-                self.send_json(400, {'error': str(e)})
-        
-        elif path == '/api/login':
-            try:
-                usuarios = load_usuarios()
-                username = data.get('username')
-                password = data.get('password')
-                device_id = data.get('device_id')
-                
-                user = next((u for u in usuarios if u['username'] == username and u['password'] == password), None)
-                if user:
-                    # Comprobar sesiones activas del mismo usuario
-                    active_sessions = [(sid, s) for sid, s in ACTIVE_SESSIONS.items() if s['username'] == username]
-                    
-                    # Si ya hay otra sesión en dispositivo distinto, bloquear
-                    other_device_sessions = [s for sid, s in active_sessions if s['device_id'] != device_id]
-                    if other_device_sessions:
-                        self.send_json(403, {
-                            'success': False,
-                            'error': 'Este usuario ya está conectado desde otro dispositivo',
-                            'allowed_devices': 0
-                        })
-                        return
-                    
-                    # Si existe sesión con el mismo dispositivo, eliminarla para crear nueva
-                    same_device_sessions = [sid for sid, s in active_sessions if s['device_id'] == device_id]
-                    for sid in same_device_sessions:
-                        del ACTIVE_SESSIONS[sid]
-                    
-                    # Generar session_id único
-                    session_id = str(uuid.uuid4())
-                    ACTIVE_SESSIONS[session_id] = {
-                        'username': username,
-                        'device_id': device_id,
-                        'timestamp': time.time(),
-                        'role': user.get('role', 'user')
-                    }
-                    
-                    self.send_json(200, {
-                        'success': True,
-                        'username': username,
-                        'device_id': device_id,
-                        'session_id': session_id,
-                        'role': user.get('role', 'user')
-                    })
-                    logging.info(f"✓ Usuario {username} inició sesión")
-                    return
-                else:
-                    self.send_json(401, {'error': 'Credenciales inválidas'})
-                    return
-            except Exception as e:
-                self.send_json(400, {'error': str(e)})
-                return
-        
-        elif path == '/api/verify-session':
-            try:
-                username = data.get('username')
-                session_id = data.get('session_id')
-                device_id = data.get('device_id')
-                
-                session = ACTIVE_SESSIONS.get(session_id)
-                if session and session['username'] == username and session['device_id'] == device_id:
-                    session['timestamp'] = time.time()
-                    self.send_json(200, {'valid': True, 'role': session.get('role', 'user')})
-                    return
-                else:
-                    self.send_json(200, {'valid': False})
-                    return
-            except Exception as e:
-                self.send_json(400, {'error': str(e)})
-                return
-        
-        elif path == '/api/logout':
-            try:
-                username = data.get('username')
-                # Buscar y eliminar la sesión del usuario
-                sessions_to_remove = [sid for sid, s in ACTIVE_SESSIONS.items() if s['username'] == username]
-                for sid in sessions_to_remove:
-                    del ACTIVE_SESSIONS[sid]
-                self.send_json(200, {'success': True})
-                logging.info(f"✓ Usuario {username} cerró sesión")
-                return
-            except Exception as e:
-                self.send_json(400, {'error': str(e)})
-                return
-        
-        else:
-            self.send_json(404, {'error': 'Not found'})
+
+
+# ---------------------------------------------------------------------------
+# Utilidades
+# ---------------------------------------------------------------------------
 
 def get_local_ip():
-    """Obtiene la dirección IP local de la máquina"""
     try:
-        # Crear un socket para conectarse a un servidor externo
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))  # Conectar a Google DNS
-        local_ip = s.getsockname()[0]
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
         s.close()
-        return local_ip
+        return ip
     except Exception:
-        return "127.0.0.1"  # Fallback a localhost
+        return "127.0.0.1"
+
 
 def setup_logging():
-    """Configura el sistema de logging con archivo y consola"""
-    # Crear directorio de logs si no existe
     logs_dir = 'logs'
     os.makedirs(logs_dir, exist_ok=True)
-    
-    # Generar nombre de archivo con fecha y hora (DD_MM_YY_HH_MM)
-    log_filename = datetime.now().strftime('%d_%m_%y_%H_%M.log')
-    log_path = os.path.join(logs_dir, log_filename)
-    
-    # Configurar logger
+    log_path = os.path.join(logs_dir, datetime.now().strftime('%d_%m_%y_%H_%M.log'))
+
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
-    
-    # Formato de logs
-    log_format = '%(asctime)s - %(levelname)s - %(message)s'
-    date_format = '%d/%m/%y %H:%M:%S'
-    formatter = logging.Formatter(log_format, datefmt=date_format)
-    
-    # Handler para archivo
-    file_handler = logging.FileHandler(log_path, encoding='utf-8')
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-    
-    # Handler para consola (forzar UTF-8 para compatibilidad con Windows)
-    console_stream = open(sys.stdout.fileno(), mode='w', encoding='utf-8', buffering=1, closefd=False)
-    console_handler = logging.StreamHandler(console_stream)
-    console_handler.setLevel(logging.DEBUG)
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
-    
+    fmt = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', '%d/%m/%y %H:%M:%S')
+
+    fh = logging.FileHandler(log_path, encoding='utf-8')
+    fh.setLevel(logging.DEBUG)
+    fh.setFormatter(fmt)
+    logger.addHandler(fh)
+
+    try:
+        cs = open(sys.stdout.fileno(), mode='w', encoding='utf-8', buffering=1, closefd=False)
+    except Exception:
+        cs = sys.stdout
+    ch = logging.StreamHandler(cs)
+    ch.setLevel(logging.INFO)
+    ch.setFormatter(fmt)
+    logger.addHandler(ch)
+
     return log_path
+
+
+# ---------------------------------------------------------------------------
+# Servidor con Threading  ← CORRECCIÓN PRINCIPAL
+# ---------------------------------------------------------------------------
+
+class ThreadingServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+    """Atiende cada request en su propio hilo, sin bloquear a los demás."""
+    allow_reuse_address = True
+    daemon_threads      = True   # los hilos mueren con el proceso principal
+
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    
-    # Configurar logging
+
     log_path = setup_logging()
-    
-    # Cargar datos en memoria
     load_data()
     logging.info("✓ Datos cargados en memoria")
-    
-    # Iniciar guardado periódico cada 30 segundos
-    import threading
-    def periodic_save_thread():
+
+    def _periodic():
         while True:
             time.sleep(30)
             periodic_save()
-    
-    save_thread = threading.Thread(target=periodic_save_thread, daemon=True)
-    save_thread.start()
-    logging.info("✓ Guardado automático iniciado (cada 30 segundos)")
-    
-    # Obtener IP local
+
+    threading.Thread(target=_periodic, daemon=True).start()
+    logging.info("✓ Guardado automático cada 30 s")
+
     local_ip = get_local_ip()
-    
-    socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("0.0.0.0", PORT), SecureHandler) as httpd:
+
+    with ThreadingServer(("0.0.0.0", PORT), SecureHandler) as httpd:
         logging.info("=" * 60)
-        logging.info("🎓 SERVIDOR DE ELECCIONES (v2)")
+        logging.info("🎓 SERVIDOR DE ELECCIONES (v3 - Threading)")
         logging.info("=" * 60)
-        logging.info(f"\n✓ Escuchando en puerto {PORT}")
-        logging.info(f"✓ Solo redes locales permitidas")
-        logging.info(f"✓ Datos persistentes en carpeta 'datos/'")
-        logging.info(f"✓ Logs guardados en: {log_path}")
-        logging.info(f"\n🌐 Acceso local: http://localhost:{PORT}")
-        logging.info(f"📱 Acceso desde red: http://{local_ip}:{PORT}")
-        logging.info(f"\n💡 Comparte la URL de red con otros dispositivos en la misma red WiFi\n")
+        logging.info(f"✓ Puerto: {PORT}")
+        logging.info(f"✓ Modo: multi-hilo (hasta 50+ usuarios simultáneos)")
+        logging.info(f"✓ Logs: {log_path}")
+        logging.info(f"🌐 Local:  http://localhost:{PORT}")
+        logging.info(f"📱 Red:    http://{local_ip}:{PORT}")
+        logging.info("")
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
-            logging.info("\n✓ Servidor detenido")
+            logging.info("✓ Servidor detenido")

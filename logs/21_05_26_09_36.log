@@ -1,0 +1,41 @@
+21/05/26 09:36:59 - INFO - ✓ Datos cargados en memoria
+21/05/26 09:36:59 - INFO - ✓ Guardado automático cada 30 s
+21/05/26 09:36:59 - INFO - ============================================================
+21/05/26 09:36:59 - INFO - 🎓 SERVIDOR DE ELECCIONES (v3 - Threading)
+21/05/26 09:36:59 - INFO - ============================================================
+21/05/26 09:36:59 - INFO - ✓ Puerto: 3000
+21/05/26 09:36:59 - INFO - ✓ Modo: multi-hilo (hasta 50+ usuarios simultáneos)
+21/05/26 09:36:59 - INFO - ✓ Logs: logs\21_05_26_09_36.log
+21/05/26 09:36:59 - INFO - 🌐 Local:  http://localhost:3000
+21/05/26 09:36:59 - INFO - 📱 Red:    http://192.168.100.66:3000
+21/05/26 09:36:59 - INFO - 
+21/05/26 09:36:59 - INFO - 🌐 Nueva IP: 127.0.0.1
+21/05/26 09:37:03 - INFO - 🌐 Nueva IP: 192.168.100.66
+21/05/26 09:37:22 - INFO - 🌐 Nueva IP: 192.168.100.71
+21/05/26 09:37:29 - INFO - ✓ Login: pato (dev_4etk…)
+21/05/26 09:37:34 - INFO - ✓ Login: admin (dev_s9vk…)
+21/05/26 09:37:56 - INFO - 🧹 Todos los votos eliminados
+21/05/26 09:37:56 - INFO - ✓ Candidatas actualizadas: 6
+21/05/26 09:37:56 - INFO - ✓ Usuarios actualizados: 0
+21/05/26 09:38:33 - INFO - ✓ Logout: pato
+21/05/26 09:38:41 - INFO - ✓ Candidatas actualizadas: 6
+21/05/26 09:38:41 - INFO - ✓ Usuarios actualizados: 1
+21/05/26 09:38:44 - INFO - ✓ Candidatas actualizadas: 6
+21/05/26 09:38:44 - INFO - ✓ Usuarios actualizados: 2
+21/05/26 09:38:49 - INFO - ✓ Candidatas actualizadas: 6
+21/05/26 09:38:49 - INFO - ✓ Usuarios actualizados: 3
+21/05/26 09:38:52 - INFO - ✓ Candidatas actualizadas: 6
+21/05/26 09:38:52 - INFO - ✓ Usuarios actualizados: 4
+21/05/26 09:38:55 - INFO - ✓ Login: carlos (dev_o32g…)
+21/05/26 09:39:00 - INFO - ✓ Votos actualizados: 1 totales
+21/05/26 09:39:02 - INFO - ✓ Votos actualizados: 2 totales
+21/05/26 09:39:06 - INFO - ✓ Votos actualizados: 3 totales
+21/05/26 09:39:09 - INFO - ✓ Votos actualizados: 4 totales
+21/05/26 09:39:12 - INFO - ✓ Votos actualizados: 5 totales
+21/05/26 09:39:19 - INFO - ✓ Login: pato (dev_4etk…)
+21/05/26 09:39:26 - INFO - ✓ Votos actualizados: 6 totales
+21/05/26 09:39:31 - INFO - ✓ Votos actualizados: 7 totales
+21/05/26 09:39:39 - INFO - ✓ Votos actualizados: 7 totales
+21/05/26 09:39:43 - INFO - ✓ Votos actualizados: 6 totales
+21/05/26 09:40:03 - INFO - 🔒 Votaciones bloqueadas
+21/05/26 09:40:07 - INFO - 🔒 Votaciones activadas
