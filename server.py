@@ -9,6 +9,7 @@ import uuid
 import time
 import shutil
 import threading
+import webbrowser
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
 import sys
@@ -201,6 +202,45 @@ def save_categorias(categorias):
         except Exception as e:
             logging.error(f"Error guardando categorías: {e}")
 
+
+def get_admin_status():
+    with DATA_LOCK:
+        active_sessions = []
+        for session_id, session in ACTIVE_SESSIONS.items():
+            active_sessions.append({
+                'session_id': session_id,
+                'username': session.get('username'),
+                'role': session.get('role', 'user'),
+                'device_id': session.get('device_id'),
+                'timestamp': session.get('timestamp'),
+            })
+
+    latest_log_path = None
+    logs_dir = 'logs'
+    if os.path.isdir(logs_dir):
+        candidates = [
+            os.path.join(logs_dir, filename)
+            for filename in os.listdir(logs_dir)
+            if filename.endswith('.log')
+        ]
+        if candidates:
+            latest_log_path = max(candidates, key=os.path.getmtime)
+
+    logs_content = ''
+    if latest_log_path and os.path.exists(latest_log_path):
+        try:
+            with open(latest_log_path, 'r', encoding='utf-8') as f:
+                logs_content = f.read()
+        except Exception:
+            logs_content = ''
+
+    return {
+        'success': True,
+        'active_sessions': active_sessions,
+        'connected_ips': sorted(list(CONNECTED_IPS)),
+        'logs': logs_content or 'No hay logs disponibles aún.',
+    }
+
 # ---------------------------------------------------------------------------
 # Handler HTTP
 # ---------------------------------------------------------------------------
@@ -267,6 +307,10 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
             })
             return True
 
+        if path == '/api/admin-status':
+            self.send_json(200, get_admin_status())
+            return True
+
         if path == '/api/get-voting-status':
             self.send_json(200, {'success': True, 'voting_enabled': VOTING_ENABLED})
             return True
@@ -315,13 +359,13 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         if path == '/admin.html':
-            params  = dict(qc.split('=') for qc in parsed.query.split('&') if '=' in qc) if parsed.query else {}
-            session = ACTIVE_SESSIONS.get(params.get('session_id'))
-            if not session or session.get('device_id') != params.get('device_id') or session.get('role') != 'admin':
-                self.send_response(302)
-                self.send_header('Location', '/index.html' if not session else '/user.html')
-                self.end_headers()
-                return
+            self.send_response(302)
+            self.send_header('Location', '/admin-dashboard')
+            self.end_headers()
+            return
+
+        if path == '/admin-dashboard':
+            self.path = '/admin_dashboard.html'
 
         if self.path == '/':
             self.path = '/index.html'
@@ -601,6 +645,9 @@ if __name__ == '__main__':
 
     local_ip = get_local_ip()
 
+    dashboard_url = f"http://localhost:{PORT}/admin-dashboard"
+    threading.Timer(1.0, lambda: webbrowser.open(dashboard_url)).start()
+
     with ThreadingServer(("0.0.0.0", PORT), SecureHandler) as httpd:
         logging.info("=" * 60)
         logging.info("🎓 SERVIDOR DE ELECCIONES (v3 - Threading)")
@@ -610,6 +657,7 @@ if __name__ == '__main__':
         logging.info(f"✓ Logs: {log_path}")
         logging.info(f"🌐 Local:  http://localhost:{PORT}")
         logging.info(f"📱 Red:    http://{local_ip}:{PORT}")
+        logging.info(f"🖥️  Panel admin abierto automáticamente: {dashboard_url}")
         logging.info("")
         try:
             httpd.serve_forever()

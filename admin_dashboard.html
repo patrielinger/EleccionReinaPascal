@@ -1,0 +1,1105 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Administrativo</title>
+    <style>
+        :root {
+            --bg: #07111f;
+            --bg-soft: #0d182b;
+            --panel: #08101f;
+            --panel-soft: #091425;
+            --border: rgba(74, 116, 170, 0.25);
+            --accent: #1d90ff;
+            --accent-strong: #00b6ff;
+            --success: #2ecc71;
+            --danger: #ff5c7a;
+            --text: #f3f7ff;
+            --muted: #90a8c7;
+            --shadow: 0 20px 60px rgba(0,0,0,0.38);
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top, rgba(29, 144, 255, 0.16), transparent 25%),
+                linear-gradient(180deg, #02070f 0%, #040c16 100%);
+        }
+
+        .app-shell {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 300px;
+            padding: 24px 18px;
+            background: rgba(6, 12, 21, 0.95);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .brand {
+            padding: 18px;
+            border-radius: 16px;
+            background: linear-gradient(180deg, rgba(19,52,91,0.9), rgba(5, 15, 27, 0.95));
+            border: 1px solid rgba(0,182,255,0.28);
+            box-shadow: var(--shadow);
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 1.3rem;
+        }
+
+        .brand p {
+            margin: 10px 0 0;
+            color: var(--muted);
+            font-size: 0.88rem;
+            line-height: 1.35;
+        }
+
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            border: 1px solid rgba(144, 168, 199, 0.18);
+            background: rgba(8, 16, 31, 0.8);
+            color: var(--text);
+            border-radius: 12px;
+            padding: 13px 14px;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.97rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            border-color: rgba(0, 182, 255, 0.72);
+            background: linear-gradient(180deg, rgba(20,78,130,0.9), rgba(8, 18, 32, 0.98));
+            transform: translateX(2px);
+        }
+
+        .nav-caption {
+            display: block;
+            color: var(--muted);
+            font-size: 0.72rem;
+            margin-top: 4px;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            border-radius: 12px;
+            border: 1px solid rgba(74, 116, 170, 0.18);
+            padding: 12px;
+            background: rgba(4, 10, 20, 0.82);
+            color: var(--muted);
+            font-size: 0.78rem;
+            line-height: 1.35;
+        }
+
+        .content {
+            flex: 1;
+            padding: 20px 20px 20px 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            background: rgba(8, 16, 31, 0.82);
+            border: 1px solid rgba(74, 116, 170, 0.25);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(6px);
+        }
+
+        .topbar h2 {
+            margin: 0;
+            font-size: 1.4rem;
+        }
+
+        .topbar p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-pill {
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            border: 1px solid rgba(46, 204, 113, 0.28);
+            color: #89ffaf;
+            background: rgba(46, 204, 113, 0.12);
+        }
+
+        .btn {
+            border-radius: 10px;
+            border: 0;
+            padding: 10px 13px;
+            cursor: pointer;
+            font-weight: 700;
+            color: white;
+            font-size: 0.86rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(180deg, #2397ff, #0b74db);
+        }
+
+        .btn-danger {
+            background: linear-gradient(180deg, #ff6f8b, #ff4b69);
+        }
+
+        .btn-secondary {
+            background: #10213b;
+            color: var(--text);
+            border: 1px solid rgba(74, 116, 170, 0.28);
+        }
+
+        .panel-grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 16px;
+            align-items: start;
+        }
+
+        .panel-card {
+            background: rgba(6, 12, 21, 0.86);
+            border-radius: 18px;
+            border: 1px solid rgba(74, 116, 170, 0.25);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(6px);
+            padding: 18px;
+        }
+
+        .panel-card h3 {
+            margin: 0 0 12px;
+            font-size: 1.08rem;
+        }
+
+        .panel-card p, .panel-card label, .panel-card small {
+            color: var(--muted);
+        }
+
+        .panel-card .section-copy {
+            margin: 0 0 14px;
+            line-height: 1.4;
+            font-size: 0.92rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            border-radius: 10px;
+            border: 1px solid rgba(74, 116, 170, 0.28);
+            background: #040b15;
+            color: var(--text);
+            padding: 10px 11px;
+            font-size: 0.9rem;
+        }
+
+        textarea {
+            min-height: 82px;
+            resize: vertical;
+        }
+
+        .full-span {
+            grid-column: 1 / -1;
+        }
+
+        .list-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .item-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 13px;
+            border-radius: 12px;
+            background: rgba(9, 18, 31, 0.9);
+            border: 1px solid rgba(74, 116, 170, 0.16);
+        }
+
+        .item-main {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .item-thumb {
+            width: 54px;
+            height: 54px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 1px solid rgba(74, 116, 170, 0.26);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .item-title {
+            font-weight: 700;
+            margin: 0 0 4px;
+        }
+
+        .item-meta {
+            margin: 0;
+            font-size: 0.78rem;
+            color: var(--muted);
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .mini-badge {
+            border-radius: 999px;
+            padding: 4px 8px;
+            font-size: 0.64rem;
+            font-weight: 800;
+            margin-left: 6px;
+        }
+
+        .badge-user { background: rgba(29, 144, 255, 0.18); color: #74c4ff; }
+        .badge-admin { background: rgba(255, 122, 62, 0.18); color: #ffb166; }
+
+        .consola-logs {
+            margin-top: 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(74, 116, 170, 0.16);
+            background: #02070f;
+            min-height: 250px;
+            max-height: 360px;
+            overflow: auto;
+            padding: 12px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.74rem;
+            line-height: 1.35;
+            white-space: pre-wrap;
+            color: #b4ddff;
+        }
+
+        .status-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .status-item {
+            border-radius: 12px;
+            border: 1px solid rgba(74, 116, 170, 0.18);
+            padding: 12px 13px;
+            background: rgba(10, 18, 31, 0.92);
+        }
+
+        .status-item strong { display:block; margin-bottom: 4px; }
+
+        .section-hidden { display: none; }
+
+        .summary-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .summary-box {
+            border-radius: 14px;
+            padding: 14px;
+            background: rgba(9, 18, 31, 0.9);
+            border: 1px solid rgba(74, 116, 170, 0.16);
+        }
+
+        .summary-box .label {
+            display: block;
+            color: var(--muted);
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            margin-bottom: 6px;
+        }
+
+        .summary-box .value {
+            font-size: 1.52rem;
+            font-weight: 800;
+        }
+
+        .small-note {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 0.77rem;
+        }
+
+        @media (max-width: 960px) {
+            .app-shell { flex-direction: column; }
+            .sidebar { width: auto; }
+            .panel-grid { grid-template-columns: 1fr; }
+            .summary-row { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <h1>🛡️ Panel Admin</h1>
+                <p>Centro de control operativo. Gestiona usuarios, candidatas, categorías, votos y la actividad del servidor.</p>
+            </div>
+
+            <div class="sidebar-nav" id="sidebarNav">
+                <button class="nav-btn active" data-target="usuarios-panel">Usuarios <span class="nav-caption">Ver, crear y eliminar cuentas</span></button>
+                <button class="nav-btn" data-target="candidatas-panel">Candidatas <span class="nav-caption">Administrar aspirantes y fotos</span></button>
+                <button class="nav-btn" data-target="categorias-panel">Categorías <span class="nav-caption">Crear y quitar categorías de voto</span></button>
+                <button class="nav-btn" data-target="consola-panel">Consola <span class="nav-caption">Logs, sesiones y IPs conectadas</span></button>
+                <button class="nav-btn" data-target="votos-panel">Votos <span class="nav-caption">Ranking, limpieza y bloqueo</span></button>
+            </div>
+
+            <div class="sidebar-footer">
+                El panel se abre automáticamente al iniciar el servidor. La consola muestra el último log disponible junto con sesiones activas en tiempo real.
+            </div>
+        </aside>
+
+        <main class="content">
+            <section class="topbar">
+                <div>
+                    <h2>Dashboard de administración</h2>
+                    <p>Control central del sistema de votación y monitoreo del servidor.</p>
+                </div>
+                <div class="top-actions">
+                    <span class="status-pill" id="votingStatusBadge">Votaciones activas</span>
+                    <button class="btn btn-secondary" id="logoutBtn">Cerrar sesión</button>
+                </div>
+            </section>
+
+            <section class="summary-row" id="summaryRow">
+                <div class="summary-box">
+                    <span class="label">Usuarios</span>
+                    <div class="value" id="summaryUsers">0</div>
+                </div>
+                <div class="summary-box">
+                    <span class="label">Candidatas</span>
+                    <div class="value" id="summaryCandidatas">0</div>
+                </div>
+                <div class="summary-box">
+                    <span class="label">Categorías</span>
+                    <div class="value" id="summaryCategorias">0</div>
+                </div>
+                <div class="summary-box">
+                    <span class="label">Votos</span>
+                    <div class="value" id="summaryVotos">0</div>
+                </div>
+            </section>
+
+            <section class="panel-grid">
+                <article class="panel-card" id="usuarios-panel">
+                    <h3>Usuarios</h3>
+                    <p class="section-copy">Consulta la lista, agrega nuevas cuentas y elimina usuarios existentes.</p>
+
+                    <form id="addUserForm">
+                        <div class="form-grid">
+                            <div>
+                                <label for="userUsername">Usuario</label>
+                                <input type="text" id="userUsername" placeholder="Ej: maria" required>
+                            </div>
+                            <div>
+                                <label for="userPassword">Contraseña</label>
+                                <input type="password" id="userPassword" placeholder="Contraseña" required>
+                            </div>
+                            <div class="full-span">
+                                <label for="userRole">Rol</label>
+                                <select id="userRole">
+                                    <option value="user">Usuario</option>
+                                    <option value="admin">Administrador</option>
+                                </select>
+                            </div>
+                            <div class="full-span">
+                                <button class="btn btn-primary" type="submit">Agregar usuario</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div id="usuariosList" class="list-stack"></div>
+                </article>
+
+                <article class="panel-card" id="candidatas-panel" class="section-hidden">
+                    <h3>Candidatas</h3>
+                    <p class="section-copy">Carga nuevas candidatas con foto, agrega descripción y elimina registros.</p>
+
+                    <form id="addCandidataForm">
+                        <div class="form-grid">
+                            <div>
+                                <label for="nombre">Nombre</label>
+                                <input type="text" id="nombre" placeholder="Nombre completo" required>
+                            </div>
+                            <div>
+                                <label for="ano">Año</label>
+                                <input type="text" id="ano" placeholder="Ej: 5to" required>
+                            </div>
+                            <div class="full-span">
+                                <label for="descripcion">Descripción</label>
+                                <textarea id="descripcion" placeholder="Descripción" required></textarea>
+                            </div>
+                            <div class="full-span">
+                                <label for="cancion">Canción elegida</label>
+                                <input type="text" id="cancion" placeholder="Canción" required>
+                            </div>
+                            <div>
+                                <label for="numero">Número</label>
+                                <input type="number" id="numero" placeholder="Número" required>
+                            </div>
+                            <div>
+                                <label for="foto">Foto</label>
+                                <input type="file" id="foto" accept="image/*">
+                            </div>
+                            <div class="full-span">
+                                <button class="btn btn-primary" type="submit">Agregar candidata</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div id="candidatasList" class="list-stack"></div>
+                </article>
+
+                <article class="panel-card section-hidden" id="categorias-panel">
+                    <h3>Categorías</h3>
+                    <p class="section-copy">Crea nuevas categorías de votación y elimina las que ya no se usen.</p>
+
+                    <form id="addCategoryForm">
+                        <div class="form-grid">
+                            <div>
+                                <label for="newCategory">Nombre</label>
+                                <input type="text" id="newCategory" placeholder="Nombre de la categoría" required>
+                            </div>
+                            <div>
+                                <label for="newCategoryColor">Color</label>
+                                <input type="color" id="newCategoryColor" value="#ff6fe7">
+                            </div>
+                            <div class="full-span">
+                                <button class="btn btn-primary" type="submit">Agregar categoría</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div id="categoriasList" class="list-stack"></div>
+                </article>
+
+                <article class="panel-card section-hidden" id="consola-panel">
+                    <h3>Consola y actividad</h3>
+                    <p class="section-copy">Consulta la actividad de usuarios, IPs conectadas y los últimos logs del servidor.</p>
+
+                    <div class="summary-row">
+                        <div class="summary-box">
+                            <span class="label">Sesiones activas</span>
+                            <div class="value" id="summarySessions">0</div>
+                        </div>
+                        <div class="summary-box">
+                            <span class="label">IPs conectadas</span>
+                            <div class="value" id="summaryIPs">0</div>
+                        </div>
+                    </div>
+
+                    <div class="panel-card" style="padding:12px; margin-top:8px;">
+                        <h3 style="font-size:0.95rem;">Usuarios conectados</h3>
+                        <div id="activeSessionsList" class="status-list"></div>
+                    </div>
+
+                    <div class="panel-card" style="padding:12px; margin-top:10px;">
+                        <h3 style="font-size:0.95rem;">IPs conectadas</h3>
+                        <div id="connectedIpsList" class="status-list"></div>
+                    </div>
+
+                    <div class="panel-card" style="padding:12px; margin-top:10px;">
+                        <h3 style="font-size:0.95rem;">Log del servidor</h3>
+                        <div id="serverLogs" class="consola-logs"></div>
+                    </div>
+                </article>
+
+                <article class="panel-card section-hidden" id="votos-panel">
+                    <h3>Votos</h3>
+                    <p class="section-copy">Revisa los votos acumulados y ejecuta acciones de limpieza o bloqueo del sistema.</p>
+
+                    <div class="summary-row">
+                        <div class="summary-box">
+                            <span class="label">Votos guardados</span>
+                            <div class="value" id="summarySavedVotes">0</div>
+                        </div>
+                        <div class="summary-box">
+                            <span class="label">Bloqueo</span>
+                            <div class="value" id="summaryVotingState">Activo</div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:10px; margin-bottom:12px;">
+                        <button class="btn btn-danger" id="clearVotesBtn">Eliminar todos los votos</button>
+                        <button class="btn btn-secondary" id="blockVotingBtn">Bloquear votaciones</button>
+                        <button class="btn btn-primary" id="enableVotingBtn" style="display:none;">Reactivar votaciones</button>
+                    </div>
+
+                    <div style="margin-bottom:10px;">
+                        <h3 style="font-size:1rem; margin:0 0 8px;">Ranking en tiempo real</h3>
+                        <div id="rankingList" class="list-stack"></div>
+                    </div>
+
+                    <div id="votosList" class="list-stack"></div>
+                </article>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        let usuarios = [];
+        let candidatas = [];
+        let categorias = [];
+        let votos = {};
+        let votingEnabled = true;
+        let adminStatusRefresh = null;
+
+        const sidebarButtons = document.querySelectorAll('.nav-btn');
+        const panels = document.querySelectorAll('.panel-card');
+
+        function setActivePanel(targetId) {
+            sidebarButtons.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.target === targetId);
+            });
+
+            panels.forEach(panel => {
+                if (panel.id === targetId) {
+                    panel.classList.remove('section-hidden');
+                } else if (['usuarios-panel','candidatas-panel','categorias-panel','consola-panel','votos-panel'].includes(panel.id)) {
+                    panel.classList.add('section-hidden');
+                }
+            });
+        }
+
+        sidebarButtons.forEach(btn => btn.addEventListener('click', () => setActivePanel(btn.dataset.target)));
+
+        async function loadData() {
+            try {
+                const [dataResponse, usuariosResponse, votosResponse] = await Promise.all([
+                    fetch('/api/load-data', { cache: 'no-store' }),
+                    fetch('/api/load-usuarios', { cache: 'no-store' }),
+                    fetch('/api/load-votos', { cache: 'no-store' })
+                ]);
+
+                const data = await dataResponse.json();
+                const usuariosData = await usuariosResponse.json();
+                const votosData = await votosResponse.json();
+
+                candidatas = Array.isArray(data.candidatas) ? data.candidatas : [];
+                categorias = Array.isArray(data.categorias) ? data.categorias : [];
+                usuarios = Array.isArray(usuariosData.usuarios) ? usuariosData.usuarios : [];
+                votos = votosData.votos && typeof votosData.votos === 'object' ? votosData.votos : {};
+
+                renderUsuarios();
+                renderCandidatas();
+                renderCategorias();
+                renderVotos();
+                updateSummary();
+            } catch (error) {
+                console.error('Error cargando datos', error);
+            }
+        }
+
+        async function loadAdminStatus() {
+            try {
+                const response = await fetch('/api/admin-status', { cache: 'no-store' });
+                const data = await response.json();
+                if (!data.success) return;
+
+                const sessions = Array.isArray(data.active_sessions) ? data.active_sessions : [];
+                const ips = Array.isArray(data.connected_ips) ? data.connected_ips : [];
+                const logs = typeof data.logs === 'string' ? data.logs : '';
+
+                document.getElementById('summarySessions').textContent = sessions.length;
+                document.getElementById('summaryIPs').textContent = ips.length;
+                document.getElementById('serverLogs').textContent = logs || 'No hay logs disponibles aún.';
+
+                const sessionsList = document.getElementById('activeSessionsList');
+                sessionsList.innerHTML = '';
+                if (sessions.length) {
+                    sessions.forEach(session => {
+                        const item = document.createElement('div');
+                        item.className = 'status-item';
+                        item.innerHTML = `<strong>${session.username}</strong><div>Rol: ${session.role || 'user'} · Dispositivo: ${session.device_id || 'N/A'}</div><div>Última actividad: ${session.timestamp || 'N/A'}</div>`;
+                        sessionsList.appendChild(item);
+                    });
+                } else {
+                    sessionsList.innerHTML = '<div class="status-item">No hay sesiones activas.</div>';
+                }
+
+                const ipList = document.getElementById('connectedIpsList');
+                ipList.innerHTML = '';
+                if (ips.length) {
+                    ips.forEach(ip => {
+                        const item = document.createElement('div');
+                        item.className = 'status-item';
+                        item.innerHTML = `<strong>${ip}</strong><div>IP registrada por el servidor.</div>`;
+                        ipList.appendChild(item);
+                    });
+                } else {
+                    ipList.innerHTML = '<div class="status-item">No hay IPs registradas.</div>';
+                }
+            } catch (error) {
+                console.error('Error cargando estado del administrador', error);
+            }
+        }
+
+        async function refreshVotingState() {
+            try {
+                const response = await fetch('/api/get-voting-status', { cache: 'no-store' });
+                const data = await response.json();
+                votingEnabled = Boolean(data.voting_enabled);
+                updateVotingUI();
+            } catch (error) {
+                console.error('Error obteniendo estado de votación', error);
+            }
+        }
+
+        function updateSummary() {
+            document.getElementById('summaryUsers').textContent = usuarios.filter(u => u.role !== 'admin' || true).length;
+            document.getElementById('summaryCandidatas').textContent = candidatas.length;
+            document.getElementById('summaryCategorias').textContent = categorias.length;
+
+            let voteCount = 0;
+            Object.values(votos).forEach(userVotes => {
+                voteCount += Object.keys(userVotes || {}).length;
+            });
+            document.getElementById('summaryVotos').textContent = voteCount;
+            document.getElementById('summarySavedVotes').textContent = voteCount;
+        }
+
+        function updateVotingUI() {
+            const badge = document.getElementById('votingStatusBadge');
+            if (votingEnabled) {
+                badge.textContent = 'Votaciones activas';
+                badge.style.background = 'rgba(46, 204, 113, 0.14)';
+                badge.style.color = '#89ffaf';
+                badge.style.borderColor = 'rgba(46, 204, 113, 0.28)';
+            } else {
+                badge.textContent = 'Votaciones bloqueadas';
+                badge.style.background = 'rgba(255, 92, 122, 0.14)';
+                badge.style.color = '#ffb0be';
+                badge.style.borderColor = 'rgba(255, 92, 122, 0.28)';
+            }
+            document.getElementById('summaryVotingState').textContent = votingEnabled ? 'Activo' : 'Bloqueado';
+            document.getElementById('blockVotingBtn').style.display = votingEnabled ? 'inline-flex' : 'none';
+            document.getElementById('enableVotingBtn').style.display = votingEnabled ? 'none' : 'inline-flex';
+        }
+
+        function renderUsuarios() {
+            const usersList = document.getElementById('usuariosList');
+            usersList.innerHTML = '';
+            const visibleUsers = usuarios.filter(u => !!u.username);
+            if (!visibleUsers.length) {
+                usersList.innerHTML = '<div class="status-item">No hay usuarios creados.</div>';
+                return;
+            }
+
+            visibleUsers.forEach(user => {
+                const div = document.createElement('div');
+                div.className = 'item-row';
+                const roleBadge = user.role === 'admin' ? '<span class="mini-badge badge-admin">ADMIN</span>' : '<span class="mini-badge badge-user">USUARIO</span>';
+                div.innerHTML = `
+                    <div class="item-main">
+                        <div>
+                            <div class="item-title">${user.username} ${roleBadge}</div>
+                            <p class="item-meta">Rol: ${user.role || 'user'} · ID: ${user.id || 'sin id'}</p>
+                        </div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn btn-danger" data-action="delete-user" data-username="${user.username}">Eliminar</button>
+                    </div>
+                `;
+                usersList.appendChild(div);
+            });
+        }
+
+        function renderCandidatas() {
+            const list = document.getElementById('candidatasList');
+            list.innerHTML = '';
+            if (!candidatas.length) {
+                list.innerHTML = '<div class="status-item">No hay candidatas cargadas.</div>';
+                return;
+            }
+
+            candidatas.forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'item-row';
+                div.innerHTML = `
+                    <div class="item-main">
+                        ${c.foto ? `<img class="item-thumb" src="${c.foto}" alt="${c.nombre}">` : '<div class="item-thumb" style="display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.06);font-size:1rem;">📸</div>'}
+                        <div>
+                            <div class="item-title">${c.nombre} · Nº ${c.numero}</div>
+                            <p class="item-meta">${c.ano} · ${c.descripcion || 'Sin descripción'} · Canción: ${c.cancion || '-'}</p>
+                        </div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn btn-danger" data-action="delete-candidata" data-id="${c.id}">Eliminar</button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function renderCategorias() {
+            const list = document.getElementById('categoriasList');
+            list.innerHTML = '';
+            if (!categorias.length) {
+                list.innerHTML = '<div class="status-item">No hay categorías definidas.</div>';
+                return;
+            }
+
+            categorias.forEach(cat => {
+                const div = document.createElement('div');
+                div.className = 'item-row';
+                div.innerHTML = `
+                    <div class="item-main">
+                        <div style="width:18px;height:18px;border-radius:999px;background:${cat.color || '#fff'};border:1px solid rgba(255,255,255,0.28);"></div>
+                        <div>
+                            <div class="item-title">${cat.name}</div>
+                            <p class="item-meta">Color: ${cat.color || '#ffffff'}</p>
+                        </div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn btn-danger" data-action="delete-category" data-name="${cat.name}">Eliminar</button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function renderRanking() {
+            const rankingList = document.getElementById('rankingList');
+            rankingList.innerHTML = '';
+
+            const activeCategories = categorias.length ? categorias : [];
+            if (!activeCategories.length) {
+                rankingList.innerHTML = '<div class="status-item">No hay categorías disponibles.</div>';
+                return;
+            }
+
+            const ranking = {};
+            activeCategories.forEach(cat => {
+                ranking[cat.name] = {};
+            });
+
+            Object.values(votos).forEach(userVotes => {
+                Object.entries(userVotes || {}).forEach(([category, candId]) => {
+                    if (!ranking[category]) {
+                        ranking[category] = {};
+                    }
+                    const key = String(candId);
+                    ranking[category][key] = (ranking[category][key] || 0) + 1;
+                });
+            });
+
+            let hasRanking = false;
+            activeCategories.forEach(cat => {
+                const counts = ranking[cat.name] || {};
+                const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+                if (!sorted.length) {
+                    return;
+                }
+
+                hasRanking = true;
+                const categoryBlock = document.createElement('div');
+                categoryBlock.className = 'status-item';
+                categoryBlock.style.borderLeft = `4px solid ${cat.color || '#fff'}`;
+                categoryBlock.innerHTML = `
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
+                        <div>
+                            <strong style="display:block;">${cat.name}</strong>
+                            <p class="item-meta" style="margin:4px 0 0;">Conteo en tiempo real</p>
+                        </div>
+                        <span class="mini-badge badge-user">${sorted.length} candidatas</span>
+                    </div>
+                `;
+
+                const rows = document.createElement('div');
+                rows.className = 'list-stack';
+                rows.style.marginTop = '0';
+                rows.style.gap = '8px';
+
+                sorted.forEach(([candId, count], index) => {
+                    const candidata = candidatas.find(c => String(c.id) === String(candId));
+                    const row = document.createElement('div');
+                    row.className = 'item-row';
+                    row.innerHTML = `
+                        <div class="item-main">
+                            ${candidata && candidata.foto ? `<img class="item-thumb" src="${candidata.foto}" alt="${candidata.nombre}">` : '<div class="item-thumb" style="display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.06);font-size:1rem;">🏆</div>'}
+                            <div>
+                                <div class="item-title">${index + 1}. ${candidata ? candidata.nombre : `Candidata ${candId}`} ${candidata ? `· Nº ${candidata.numero}` : ''}</div>
+                                <p class="item-meta">${count} voto${count === 1 ? '' : 's'} acumulado${count === 1 ? '' : 's'}</p>
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <span class="mini-badge badge-admin">${count} votos</span>
+                        </div>
+                    `;
+                    rows.appendChild(row);
+                });
+
+                categoryBlock.appendChild(rows);
+                rankingList.appendChild(categoryBlock);
+            });
+
+            if (!hasRanking) {
+                rankingList.innerHTML = '<div class="status-item">Aún no hay votos registrados.</div>';
+            }
+        }
+
+        function renderVotos() {
+            const list = document.getElementById('votosList');
+            list.innerHTML = '';
+
+            const flatVotes = [];
+            Object.entries(votos).forEach(([username, userVotes]) => {
+                Object.entries(userVotes || {}).forEach(([category, candId]) => {
+                    const candidata = candidatas.find(c => String(c.id) === String(candId));
+                    flatVotes.push({ username, category, candId, candidata: candidata ? candidata.nombre : `ID ${candId}` });
+                });
+            });
+
+            if (!flatVotes.length) {
+                list.innerHTML = '<div class="status-item">Aún no hay votos registrados.</div>';
+                renderRanking();
+                return;
+            }
+
+            flatVotes.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'item-row';
+                div.innerHTML = `
+                    <div class="item-main">
+                        <div>
+                            <div class="item-title">${item.username} · ${item.category}</div>
+                            <p class="item-meta">Candidata: ${item.candidata} · ID: ${item.candId}</p>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+
+            renderRanking();
+        }
+
+        async function saveUsers(users) {
+            await fetch('/api/save-usuarios', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ usuarios: users })
+            });
+        }
+
+        async function saveCandidatas(data) {
+            await fetch('/api/save-candidatas', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ candidatas: data })
+            });
+        }
+
+        async function saveCategorias(data) {
+            await fetch('/api/save-categorias', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ categorias: data })
+            });
+        }
+
+        document.getElementById('addUserForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('userUsername').value.trim();
+            const password = document.getElementById('userPassword').value.trim();
+            const role = document.getElementById('userRole').value;
+            if (!username || !password) return;
+
+            usuarios.push({ id: `user_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`, username, password, role });
+            await saveUsers(usuarios);
+            renderUsuarios();
+            updateSummary();
+            e.target.reset();
+        });
+
+        document.getElementById('addCandidataForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nombre = document.getElementById('nombre').value.trim();
+            const ano = document.getElementById('ano').value.trim();
+            const descripcion = document.getElementById('descripcion').value.trim();
+            const cancion = document.getElementById('cancion').value.trim();
+            const numero = document.getElementById('numero').value;
+            const fotoFile = document.getElementById('foto').files[0];
+
+            let fotoUrl = null;
+            if (fotoFile) {
+                const formData = new FormData();
+                formData.append('foto', fotoFile);
+                formData.append('numero', numero);
+                const response = await fetch('/api/upload-candidata-foto', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    alert('Error guardando la imagen de la candidata');
+                    return;
+                }
+                fotoUrl = result.foto;
+            }
+
+            const candidata = { id: Date.now(), nombre, ano, descripcion, cancion, numero, foto: fotoUrl };
+            candidatas.push(candidata);
+            await saveCandidatas(candidatas);
+            renderCandidatas();
+            updateSummary();
+            e.target.reset();
+        });
+
+        document.getElementById('addCategoryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('newCategory').value.trim();
+            const color = document.getElementById('newCategoryColor').value;
+            if (!name) return;
+            if (categorias.some(cat => cat.name.toLowerCase() === name.toLowerCase())) {
+                alert('La categoría ya existe');
+                return;
+            }
+
+            categorias.push({ name, color });
+            await saveCategorias(categorias);
+            renderCategorias();
+            updateSummary();
+            e.target.reset();
+        });
+
+        document.getElementById('clearVotesBtn').addEventListener('click', async () => {
+            await fetch('/api/clear-all-votes', { method: 'POST', headers: {'Content-Type': 'application/json'} });
+            await loadData();
+            await loadAdminStatus();
+        });
+
+        document.getElementById('blockVotingBtn').addEventListener('click', async () => {
+            await fetch('/api/set-voting-status', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ enabled: false })
+            });
+            await refreshVotingState();
+        });
+
+        document.getElementById('enableVotingBtn').addEventListener('click', async () => {
+            await fetch('/api/set-voting-status', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ enabled: true })
+            });
+            await refreshVotingState();
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('currentUser');
+            window.location.href = 'index.html';
+        });
+
+        document.addEventListener('click', async (e) => {
+            const { action } = e.target.dataset;
+            if (action === 'delete-user') {
+                const username = e.target.dataset.username;
+                usuarios = usuarios.filter(u => u.username !== username);
+                delete votos[username];
+                await saveUsers(usuarios);
+                await fetch('/api/save-votos', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ votos })
+                });
+                await loadData();
+            }
+
+            if (action === 'delete-candidata') {
+                const id = e.target.dataset.id;
+                candidatas = candidatas.filter(c => String(c.id) !== String(id));
+                Object.values(votos).forEach(userVotes => {
+                    Object.keys(userVotes).forEach(cat => {
+                        if (String(userVotes[cat]) === String(id)) delete userVotes[cat];
+                    });
+                });
+                await saveCandidatas(candidatas);
+                await fetch('/api/save-votos', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ votos })
+                });
+                await loadData();
+            }
+
+            if (action === 'delete-category') {
+                const category = e.target.dataset.name;
+                categorias = categorias.filter(cat => cat.name !== category);
+                Object.values(votos).forEach(userVotes => {
+                    delete userVotes[category];
+                });
+                await saveCategorias(categorias);
+                await fetch('/api/save-votos', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ votos })
+                });
+                await loadData();
+            }
+        });
+
+        async function init() {
+            await loadData();
+            await loadAdminStatus();
+            await refreshVotingState();
+            setActivePanel('usuarios-panel');
+            adminStatusRefresh = setInterval(async () => {
+                await loadData();
+                await loadAdminStatus();
+                await refreshVotingState();
+            }, 3000);
+        }
+
+        init();
+    </script>
+</body>
+</html>
