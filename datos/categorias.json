@@ -1,22 +1,27 @@
 [
   {
     "name": "Reina",
-    "color": "#ff6fe7"
+    "color": "#ff6fe7",
+    "order": 1
   },
   {
     "name": "Primera Princesa",
-    "color": "#e6fa33"
+    "color": "#e6fa33",
+    "order": 2
   },
   {
     "name": "Segunda Princesa",
-    "color": "#e6fa33"
+    "color": "#e6fa33",
+    "order": 3
   },
   {
     "name": "Primera Dama de Honor",
-    "color": "#1fff40"
+    "color": "#1fff40",
+    "order": 4
   },
   {
     "name": "Segunda Dama de Honor",
-    "color": "#1fff40"
+    "color": "#1fff40",
+    "order": 5
   }
 ]

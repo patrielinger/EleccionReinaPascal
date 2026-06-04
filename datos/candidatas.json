@@ -52,5 +52,14 @@
     "cancion": "das",
     "numero": "5",
     "foto": "img/5.jpg"
+  },
+  {
+    "id": 1780577435626,
+    "nombre": "Lua",
+    "ano": "5°",
+    "descripcion": "lorem",
+    "cancion": "shakira 🤷‍♀️",
+    "numero": "31",
+    "foto": "img/31.png"
   }
 ]

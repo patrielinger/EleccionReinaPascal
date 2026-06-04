@@ -10,12 +10,13 @@
 <body>
 
     <nav style="display: inline-block; width: 100%;">
-    <h1>Elecciones Reina de Colegios</h1>
+    <h1>Eleccion Representante Blaise Pascal</h1>
     <button id="logout">Cerrar Sesión</button>
     </nav>
 
     <div id="votingStatusBanner" style="padding: 15px 20px; margin: 20px 0; border-radius: 8px; font-weight: bold; text-align: center; font-size: 16px; display: none;"></div>
-    <div id="ranking"> <h1>Mis votos</h1>
+    <div id="ranking"> 
+        <h1>Mis votos</h1>
         <div id="rankingContent"></div>
     </div>
     <input type="text" id="search" placeholder="Buscar por nombre o número">
@@ -77,6 +78,8 @@
         let candidatas = [];
         let votos = {};
         let categorias = [];
+        let votingCategories = [];
+        let votingMode = 'direct';
         let votingEnabled = true;
         let modal = null;
         const defaultCategorias = [
@@ -91,6 +94,52 @@
         let pendingVoteRetryTimer = null;
         let dataPollingTimer = null;
         let isSavingVote = false;
+
+        function clampScore(value) {
+            const number = Number.parseInt(value, 10);
+            if (Number.isNaN(number)) return 0;
+            return Math.min(100, Math.max(1, number));
+        }
+
+        function normalizeScores(scores, categoryNames) {
+            const normalized = {};
+            if (!scores || typeof scores !== 'object') return normalized;
+            Object.entries(scores).forEach(([category, score]) => {
+                if (categoryNames.has(category)) {
+                    normalized[category] = clampScore(score);
+                }
+            });
+            return normalized;
+        }
+
+        function normalizeVotesData(rawVotos, categories) {
+            const normalized = {};
+            const categoryNames = new Set(categories.map(cat => cat.name));
+
+            Object.entries(rawVotos || {}).forEach(([username, userVotes]) => {
+                normalized[username] = {};
+                if (!userVotes || typeof userVotes !== 'object') return;
+
+                Object.entries(userVotes).forEach(([key, value]) => {
+                    // Votos en formato de puntajes: {candidateId: {scores: {...}}}
+                    if (value && typeof value === 'object' && !Array.isArray(value) && 'scores' in value) {
+                        normalized[username][key] = {
+                            ...value,
+                            scores: normalizeScores(value.scores, categoryNames)
+                        };
+                        return;
+                    }
+
+                    // Votos en formato directo: {categoria: candidateId}
+                    // Mantener como está, NO transformar
+                    if (categoryNames.has(key) && (typeof value === 'number' || typeof value === 'string')) {
+                        normalized[username][key] = value;
+                    }
+                });
+            });
+
+            return normalized;
+        }
 
         function queueVotePayload(payload) {
             pendingVotePayload = payload;
@@ -169,8 +218,26 @@
                 const data = await response.json();
                 if (data.success) {
                     candidatas = data.candidatas || [];
-                    votos = data.votos || {};
-                    categorias = normalizeCategories(data.categorias || []);
+                    const newVotingMode = data.voting_mode || 'direct';
+                    
+                    if (votingMode !== newVotingMode) {
+                        votingMode = newVotingMode;
+                        updateVotingModeUI();
+                        updateVotingStatusBanner('⚠️ El sistema de votación ha cambiado. Recargando interfaz...', 'info');
+                    } else {
+                        votingMode = newVotingMode;
+                    }
+                    
+                    if (votingMode === 'scoring') {
+                        votingCategories = normalizeCategories(data.voting_categories || []);
+                        categorias = normalizeCategories(data.categorias || []);
+                        votos = normalizeVotesData(data.votos || {}, votingCategories);
+                    } else {
+                        categorias = normalizeCategories(data.categorias || []);
+                        votingCategories = [];
+                        votos = normalizeVotesData(data.votos || {}, categorias);
+                    }
+                    
                     if (pendingVotePayload && pendingVotePayload.username === currentUser.username) {
                         votos[currentUser.username] = pendingVotePayload.votos || {};
                     }
@@ -211,12 +278,14 @@
         function normalizeCategory(category) {
             if (!category) return null;
             if (typeof category === 'string') {
-                return { name: category, color: '#ff6fe7' };
+                return { name: category, color: '#ff6fe7', order: 999 };
             }
             if (typeof category === 'object' && category.name) {
+                const order = Number(category.order);
                 return {
                     name: String(category.name).trim(),
-                    color: category.color || '#ff6fe7'
+                    color: category.color || '#ff6fe7',
+                    order: Number.isFinite(order) ? order : 999
                 };
             }
             return null;
@@ -224,7 +293,10 @@
 
         function normalizeCategories(raw) {
             if (!Array.isArray(raw)) return [];
-            return raw.map(normalizeCategory).filter(Boolean);
+            return raw
+                .map(normalizeCategory)
+                .filter(Boolean)
+                .sort((a, b) => (Number(a.order || 0) - Number(b.order || 0)));
         }
 
         function updateCategoryStyles() {
@@ -238,29 +310,73 @@
         }
 
         function loadRanking() {
-            const categories = categorias.length ? categorias : defaultCategorias;
             const userVotes = votos[currentUser.username] || {};
             let html = '';
-            categories.forEach(cat => {
+            const orderedCategories = [...(categorias.length ? categorias : defaultCategorias)].sort((a, b) => (Number(a.order || 0) - Number(b.order || 0)));
+            
+            const assignedCandidates = []; // Almacena candidatas ya asignadas a puestos
+
+            orderedCategories.forEach((cat, index) => {
                 const className = slugify(cat.name);
-                html += `<div class="${className}"><h3>${cat.name}</h3>`;
-                const votedId = userVotes[cat.name];
-                if (votedId) {
-                    const candidata = candidatas.find(c => c.id == votedId);
-                    if (candidata) {
-                        html += `
-                            <div class="candidata-card" onclick="showDetails(${candidata.id})">
-                                <img src="${candidata.foto || 'img/default.jpg'}" alt="${candidata.nombre}">
-                                <h3>${candidata.nombre}</h3>
-                                <p>Candidata: <b>${candidata.numero}</b> </p>
-                            </div>
-                        `;
+                let displayCard = null;
+                let totalScore = 0;
+
+                if (votingMode === 'scoring') {
+                    // Modo puntaje: mostrar candidata con más puntos totales en este puesto
+                    // pero que no haya sido asignada ya a otro puesto
+                    let bestCandidate = null;
+                    let bestTotalScore = 0;
+
+                    Object.entries(userVotes).forEach(([candId, voteData]) => {
+                        // Saltar si ya fue asignada a otro puesto
+                        if (assignedCandidates.includes(String(candId))) return;
+                        
+                        const candidate = candidatas.find(c => String(c.id) === String(candId));
+                        if (!candidate) return;
+                        
+                        // Sumar todos los puntos de esta candidata en todas las categorías de votación
+                        let totalPoints = 0;
+                        const scores = voteData?.scores || {};
+                        Object.values(scores).forEach(score => {
+                            totalPoints += Number(score || 0);
+                        });
+
+                        if (totalPoints > bestTotalScore) {
+                            bestTotalScore = totalPoints;
+                            bestCandidate = candidate;
+                        }
+                    });
+
+                    if (bestCandidate && bestTotalScore > 0) {
+                        displayCard = bestCandidate;
+                        totalScore = bestTotalScore;
+                        assignedCandidates.push(String(bestCandidate.id)); // Marcar como asignada
                     }
                 } else {
-                    html += `<p>No has votado en esta categoría</p>`;
+                    // Modo directo: mostrar candidata votada en este puesto
+                    const votedId = userVotes[cat.name];
+                    if (votedId) {
+                        displayCard = candidatas.find(c => c.id == votedId);
+                    }
+                }
+
+                html += `<div class="${className}"><h3>${cat.name} <span style="font-size:0.72rem; opacity:0.7;">(puesto ${index + 1})</span></h3>`;
+                if (displayCard) {
+                    html += `
+                        <div class="candidata-card" onclick="showDetails(${displayCard.id})">
+                            <img src="${displayCard.foto || 'img/default.jpg'}" alt="${displayCard.nombre}">
+                            <h3>${displayCard.nombre}</h3>
+                            <p>Candidata: <b>${displayCard.numero}</b></p>
+                            ${votingMode === 'scoring' && totalScore > 0 ? `<p><strong>${totalScore} puntos</strong></p>` : ''}
+                        </div>
+                    `;
+                } else {
+                    const noVoteMsg = votingMode === 'scoring' ? 'No has puntuado en este puesto' : 'No has votado en este puesto';
+                    html += `<p>${noVoteMsg}</p>`;
                 }
                 html += '</div>';
             });
+
             document.getElementById('rankingContent').innerHTML = html;
         }
 
@@ -281,18 +397,6 @@
         function showDetails(id) {
             const c = candidatas.find(cand => cand.id == id);
             if (c) {
-                const userVotes = votos[currentUser.username] || {};
-                const categories = categorias.length ? categorias : defaultCategorias;
-                
-                // Encontrar qué categoría está votada para esta candidata
-                let votedCategory = null;
-                for (const [cat, votedId] of Object.entries(userVotes)) {
-                    if (votedId == id) {
-                        votedCategory = cat;
-                        break;
-                    }
-                }
-
                 let detailsHtml = `
                     <img src="${c.foto || 'img/default.jpg'}" alt="${c.nombre}" class="modal-photo">
                     <div class="modal-header">
@@ -319,44 +423,129 @@
                     return;
                 }
 
-                let optionsHtml = '';
-                categories.forEach(cat => {
-                    optionsHtml += `<label>${cat.name} <input type="radio" name="categoria" value="${cat.name}" ${votedCategory === cat.name ? 'checked' : ''}></label>`;
-                });
-                
-                document.getElementById('candidataDetails').innerHTML = `
-                    ${detailsHtml}
-                    <form id="voteForm">
-                        <div class="vote-options">
-                            ${optionsHtml}
-                        </div>
-                        <div class="button-group">
-                            <button type="submit">Votar</button>
-                            ${votedCategory ? `<button type="button" id="deleteVoteBtn">Eliminar Voto</button>` : ''}
-                        </div>
-                    </form>
-                `;
-                modal.style.display = 'block';
-                document.getElementById('voteForm').addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    const categoria = document.querySelector('input[name="categoria"]:checked');
-                    if (categoria) {
-                        votar(id, categoria.value);
-                    }
-                });
-                
-                // Agregar evento al botón Eliminar Voto si existe
-                const deleteBtn = document.getElementById('deleteVoteBtn');
-                if (deleteBtn) {
-                    deleteBtn.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        eliminarVoto(votedCategory);
+                if (votingMode === 'scoring') {
+                    detailsHtml += `<div style="margin-top:12px; padding:10px 12px; border-radius:8px; background:rgba(255,255,255,0.06); color:#fff; font-size:0.9rem;">
+                        Asigna puntajes del 1 al 100 por categoría. Los valores se guardan sin borrar los anteriores.
+                    </div><br>`;
+
+                    const userVotes = votos[currentUser.username] || {};
+                    const candidateVote = userVotes[String(id)] || {};
+                    const existingScores = candidateVote.scores || {};
+
+                    let optionsHtml = '';
+                    votingCategories.forEach(cat => {
+                        const currentScore = existingScores[cat.name] || '';
+                        optionsHtml += `
+                            <label style="display:flex; flex-direction:column; gap:6px; margin-bottom:10px;">
+                                ${cat.name}
+                                <input type="number" min="1" max="100" step="1" value="${currentScore}" data-category="${cat.name}" id="score-${slugify(cat.name)}-${id}">
+                            </label>
+                        `;
                     });
+
+                    document.getElementById('candidataDetails').innerHTML = `
+                        ${detailsHtml}
+                        <form id="voteForm">
+                            <div class="vote-options">
+                                ${optionsHtml}
+                            </div>
+                            <div class="button-group">
+                                <button type="submit">Actualizar puntajes</button>
+                            </div>
+                        </form>
+                    `;
+                    modal.style.display = 'block';
+                    document.getElementById('voteForm').addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        votarPuntaje(id);
+                    });
+                } else {
+                    // Modo votación directa
+                    detailsHtml += `<div style="margin-top:12px; padding:10px 12px; border-radius:8px; background:rgba(255,255,255,0.06); color:#fff; font-size:0.9rem;">
+                        Elige un puesto para esta candidata.
+                    </div><br>`;
+
+                    const categories = [...(categorias.length ? categorias : defaultCategorias)].sort((a, b) => (Number(a.order || 0) - Number(b.order || 0)));
+                    const userVotes = votos[currentUser.username] || {};
+
+                    let votedCategory = null;
+                    for (const [cat, votedId] of Object.entries(userVotes)) {
+                        if (votedId == id) {
+                            votedCategory = cat;
+                            break;
+                        }
+                    }
+
+                    let optionsHtml = '';
+                    categories.forEach(cat => {
+                        optionsHtml += `<label>${cat.name} <input type="radio" name="categoria" value="${cat.name}" ${votedCategory === cat.name ? 'checked' : ''}></label>`;
+                    });
+
+                    document.getElementById('candidataDetails').innerHTML = `
+                        ${detailsHtml}
+                        <form id="voteForm">
+                            <div class="vote-options">
+                                ${optionsHtml}
+                            </div>
+                            <div class="button-group">
+                                <button type="submit">Votar</button>
+                                ${votedCategory ? `<button type="button" id="deleteVoteBtn">Eliminar voto</button>` : ''}
+                            </div>
+                        </form>
+                    `;
+                    modal.style.display = 'block';
+                    document.getElementById('voteForm').addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        const categoria = document.querySelector('input[name="categoria"]:checked');
+                        if (categoria) {
+                            votarDirecto(id, categoria.value);
+                        }
+                    });
+
+                    const deleteBtn = document.getElementById('deleteVoteBtn');
+                    if (deleteBtn) {
+                        deleteBtn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            eliminarVoto(votedCategory);
+                        });
+                    }
                 }
             }
         }
 
-        function votar(candId, categoria) {
+        function votarPuntaje(candId) {
+            if (!votos[currentUser.username]) votos[currentUser.username] = {};
+
+            const userVotes = votos[currentUser.username];
+            const newScores = {};
+
+            votingCategories.forEach(cat => {
+                const input = document.getElementById(`score-${slugify(cat.name)}-${candId}`);
+                if (!input) return;
+
+                const score = clampScore(input.value);
+                if (score > 0) {
+                    newScores[cat.name] = score;
+                }
+            });
+
+            userVotes[String(candId)] = {
+                ...(userVotes[String(candId)] || {}),
+                scores: {
+                    ...(userVotes[String(candId)]?.scores || {}),
+                    ...newScores,
+                }
+            };
+
+            queueVotePayload({
+                username: currentUser.username,
+                votos: { [currentUser.username]: { ...userVotes } }
+            });
+            loadRanking();
+            modal.style.display = 'none';
+        }
+
+        function votarDirecto(candId, categoria) {
             if (!votos[currentUser.username]) votos[currentUser.username] = {};
             const userVotes = votos[currentUser.username];
 
@@ -381,13 +570,22 @@
             modal.style.display = 'none';
         }
 
+        function votar(candId) {
+            if (votingMode === 'scoring') {
+                votarPuntaje(candId);
+            } else {
+                // No se debe llamar sin categoría en modo directo
+                console.warn('Llame a votarDirecto o votarPuntaje según el modo');
+            }
+        }
+
         function eliminarVoto(categoria) {
             if (!votos[currentUser.username]) return;
-            const userVotes = votos[currentUser.username];
-            delete userVotes[categoria];
+            delete votos[currentUser.username][categoria];
+
             queueVotePayload({
                 username: currentUser.username,
-                votos: { [currentUser.username]: { ...userVotes } }
+                votos: { [currentUser.username]: { ...votos[currentUser.username] } }
             });
             loadRanking();
             modal.style.display = 'none';
@@ -403,9 +601,12 @@
             candidatas = [];
             votos = {};
             categorias = [];
+            votingMode = 'direct';
+            votingCategories = [];
 
             loadServerData();
             startServerPolling();
+            updateVotingModeUI();
 
             checkVotingStatus();
             startVotingStatusPolling();
@@ -428,6 +629,13 @@
 
             closeBtn.onclick = () => modal.style.display = 'none';
             window.onclick = (e) => { if (e.target == modal) modal.style.display = 'none'; };
+        }
+
+        function updateVotingModeUI() {
+            const modeMessage = votingMode === 'scoring' 
+                ? '🎯 Modo: Votación por Puntaje (1-100)' 
+                : '✓ Modo: Votación Directa';
+            updateVotingStatusBanner(modeMessage, votingMode === 'scoring' ? 'info' : 'success');
         }
 
         let votingStatusInterval; // Para guardar el intervalo

@@ -1,0 +1,17 @@
+04/06/26 09:21:13 - INFO - ✓ Datos cargados en memoria
+04/06/26 09:21:13 - INFO - ✓ Guardado automático cada 30 s
+04/06/26 09:21:13 - INFO - ============================================================
+04/06/26 09:21:13 - INFO - 🎓 SERVIDOR DE ELECCIONES (v3 - Threading)
+04/06/26 09:21:14 - INFO - ============================================================
+04/06/26 09:21:14 - INFO - ✓ Puerto: 3000
+04/06/26 09:21:14 - INFO - ✓ Modo: multi-hilo (hasta 50+ usuarios simultáneos)
+04/06/26 09:21:14 - INFO - ✓ Logs: logs\04_06_26_09_21.log
+04/06/26 09:21:14 - INFO - 🌐 Local:  http://localhost:3000
+04/06/26 09:21:14 - INFO - 📱 Red:    http://192.168.100.66:3000
+04/06/26 09:21:14 - INFO - 🖥️  Panel admin abierto automáticamente: http://localhost:3000/admin-dashboard
+04/06/26 09:21:14 - INFO - 
+04/06/26 09:21:19 - INFO - 🌐 Nueva IP: 127.0.0.1
+04/06/26 09:21:45 - INFO - 🌐 Nueva IP: 192.168.100.55
+04/06/26 09:22:19 - INFO - ✓ Login: pato (dev_b1sj…)
+04/06/26 09:37:35 - INFO - ✓ Logout: pato
+04/06/26 09:37:37 - INFO - 🧹 Todos los votos eliminados

@@ -1,0 +1,27 @@
+04/06/26 10:14:25 - INFO - ✓ Datos cargados en memoria
+04/06/26 10:14:25 - INFO - ✓ Guardado automático cada 30 s
+04/06/26 10:14:25 - INFO - ============================================================
+04/06/26 10:14:25 - INFO - 🎓 SERVIDOR DE ELECCIONES (v3 - Threading)
+04/06/26 10:14:25 - INFO - ============================================================
+04/06/26 10:14:25 - INFO - ✓ Puerto: 3000
+04/06/26 10:14:25 - INFO - ✓ Modo: multi-hilo (hasta 50+ usuarios simultáneos)
+04/06/26 10:14:25 - INFO - ✓ Logs: logs\04_06_26_10_14.log
+04/06/26 10:14:25 - INFO - 🌐 Local:  http://localhost:3000
+04/06/26 10:14:25 - INFO - 📱 Red:    http://192.168.100.66:3000
+04/06/26 10:14:25 - INFO - 🖥️  Panel admin abierto automáticamente: http://localhost:3000/admin-dashboard
+04/06/26 10:14:25 - INFO - 
+04/06/26 10:14:25 - INFO - 🌐 Nueva IP: 127.0.0.1
+04/06/26 10:14:25 - INFO - 🌐 Nueva IP: 192.168.100.55
+04/06/26 10:14:31 - INFO - ✓ Login: pato (dev_b1sj…)
+04/06/26 10:14:40 - INFO - ✓ Votos actualizados: 5 totales
+04/06/26 10:14:43 - INFO - ✓ Votos actualizados: 5 totales
+04/06/26 10:14:47 - INFO - ✓ Votos actualizados: 6 totales
+04/06/26 10:14:53 - INFO - 🗳️ Modo de votación cambiado a: votación por puntaje
+04/06/26 10:15:05 - INFO - ✓ Votos actualizados: 3 totales
+04/06/26 10:15:09 - INFO - 🗳️ Modo de votación cambiado a: votación directa
+04/06/26 10:15:10 - INFO - 🗳️ Modo de votación cambiado a: votación directa
+04/06/26 10:15:13 - INFO - 🗳️ Modo de votación cambiado a: votación por puntaje
+04/06/26 10:15:16 - INFO - 🗳️ Modo de votación cambiado a: votación directa
+04/06/26 10:15:33 - INFO - ✓ Votos actualizados: 4 totales
+04/06/26 10:15:40 - INFO - 🗳️ Modo de votación cambiado a: votación por puntaje
+04/06/26 10:15:49 - INFO - 🧹 Todos los votos eliminados

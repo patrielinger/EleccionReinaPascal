@@ -374,6 +374,92 @@
             .panel-grid { grid-template-columns: 1fr; }
             .summary-row { grid-template-columns: repeat(2, 1fr); }
         }
+
+        /* Modal de confirmación */
+        .confirmation-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .confirmation-modal.active {
+            display: flex;
+        }
+
+        .confirmation-modal-content {
+            background: linear-gradient(180deg, rgba(13, 24, 43, 0.98), rgba(8, 16, 31, 0.95));
+            border: 1px solid rgba(29, 144, 255, 0.3);
+            border-radius: 16px;
+            padding: 28px 32px;
+            max-width: 420px;
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .confirmation-modal-content h3 {
+            margin: 0 0 12px 0;
+            color: var(--text);
+            font-size: 1.1rem;
+        }
+
+        .confirmation-modal-content p {
+            margin: 0 0 24px 0;
+            color: var(--muted);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .confirmation-modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .confirmation-modal-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .confirmation-modal-buttons .btn-cancel {
+            background: rgba(74, 116, 170, 0.15);
+            color: var(--muted);
+            border: 1px solid rgba(74, 116, 170, 0.25);
+        }
+
+        .confirmation-modal-buttons .btn-cancel:hover {
+            background: rgba(74, 116, 170, 0.25);
+            border-color: rgba(74, 116, 170, 0.4);
+        }
+
+        .confirmation-modal-buttons .btn-confirm {
+            background: linear-gradient(180deg, #ff5c7a, #e63955);
+            color: white;
+            border: 1px solid rgba(255, 92, 122, 0.4);
+        }
+
+        .confirmation-modal-buttons .btn-confirm:hover {
+            background: linear-gradient(180deg, #ff6b8a, #e63955);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(255, 92, 122, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -512,6 +598,10 @@
                                 <label for="newCategoryColor">Color</label>
                                 <input type="color" id="newCategoryColor" value="#ff6fe7">
                             </div>
+                            <div>
+                                <label for="newCategoryOrder">Puesto / Orden</label>
+                                <input type="number" id="newCategoryOrder" min="1" step="1" placeholder="Ej: 6">
+                            </div>
                             <div class="full-span">
                                 <button class="btn btn-primary" type="submit">Agregar categoría</button>
                             </div>
@@ -573,7 +663,26 @@
                         <button class="btn btn-primary" id="enableVotingBtn" style="display:none;">Reactivar votaciones</button>
                     </div>
 
-                    <div style="margin-bottom:10px;">
+                    <div style="margin-top:16px; padding:12px; border-radius:12px; background:rgba(74,116,170,0.15); border:1px solid rgba(74,116,170,0.25);">
+                        <h3 style="font-size:0.95rem; margin:0 0 10px;">Modo de Votación</h3>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button class="btn btn-secondary" id="votingModeDirectBtn">Votación Directa</button>
+                            <button class="btn btn-secondary" id="votingModeScoringBtn">Votación por Puntaje</button>
+                        </div>
+                        <p id="votingModeStatus" style="font-size:0.82rem; color:#90a8c7; margin:10px 0 0;"></p>
+                    </div>
+
+                    <div id="votingCategoriesPanel" style="display:none; margin-top:16px; padding:12px; border-radius:12px; background:rgba(29,144,255,0.08); border:1px solid rgba(29,144,255,0.25);">
+                        <h3 style="font-size:0.95rem; margin:0 0 10px;">Categorías de Votación (Puntajes)</h3>
+                        <p style="font-size:0.82rem; color:#90a8c7; margin:0 0 12px;">Estas categorías son independientes de los puestos. Los puntos se suman y las candidatas se ordenan por total.</p>
+                        <form id="addVotingCategoryForm" style="display:flex; gap:8px; margin-bottom:12px;">
+                            <input type="text" id="newVotingCategory" placeholder="Ej: Belleza, Simpatía, Carisma" required>
+                            <button type="submit" class="btn btn-primary">Agregar</button>
+                        </form>
+                        <div id="votingCategoriesList" class="list-stack"></div>
+                    </div>
+
+                    <div style="margin-bottom:10px; margin-top:16px;">
                         <h3 style="font-size:1rem; margin:0 0 8px;">Ranking en tiempo real</h3>
                         <div id="rankingList" class="list-stack"></div>
                     </div>
@@ -584,13 +693,96 @@
         </main>
     </div>
 
+    <!-- Modal de confirmación -->
+    <div class="confirmation-modal" id="confirmationModal">
+        <div class="confirmation-modal-content">
+            <h3></h3>
+            <p></p>
+            <div class="confirmation-modal-buttons">
+                <button class="btn-cancel">Cancelar</button>
+                <button class="btn-confirm">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let usuarios = [];
         let candidatas = [];
         let categorias = [];
+        let votingCategories = [];
         let votos = {};
         let votingEnabled = true;
+        let votingMode = 'direct';
         let adminStatusRefresh = null;
+
+        function clampScore(value) {
+            const number = Number.parseInt(value, 10);
+            if (Number.isNaN(number)) return 0;
+            return Math.min(100, Math.max(1, number));
+        }
+
+        function normalizeCategory(category, index = 0) {
+            if (!category) return null;
+            if (typeof category === 'string') {
+                return { name: category.trim(), color: '#ff6fe7', order: index + 1 };
+            }
+            if (typeof category === 'object' && category.name) {
+                const order = Number(category.order);
+                return {
+                    name: String(category.name).trim(),
+                    color: category.color || '#ff6fe7',
+                    order: Number.isFinite(order) ? order : index + 1
+                };
+            }
+            return null;
+        }
+
+        function normalizeCategories(raw) {
+            if (!Array.isArray(raw)) return [];
+            return raw
+                .map((category, index) => normalizeCategory(category, index))
+                .filter(Boolean)
+                .sort((a, b) => (Number(a.order || 0) - Number(b.order || 0)));
+        }
+
+        function normalizeScores(scores) {
+            const normalized = {};
+            if (!scores || typeof scores !== 'object') return normalized;
+            Object.entries(scores).forEach(([category, score]) => {
+                normalized[category] = clampScore(score);
+            });
+            return normalized;
+        }
+
+        function normalizeVotesData(rawVotos, categories) {
+            const normalized = {};
+            const categoryNames = new Set(categories.map(cat => cat.name));
+
+            Object.entries(rawVotos || {}).forEach(([username, userVotes]) => {
+                normalized[username] = {};
+                if (!userVotes || typeof userVotes !== 'object') return;
+
+                Object.entries(userVotes).forEach(([key, value]) => {
+                    if (value && typeof value === 'object' && !Array.isArray(value) && 'scores' in value) {
+                        normalized[username][key] = {
+                            ...value,
+                            scores: normalizeScores(value.scores)
+                        };
+                        return;
+                    }
+
+                    if (categoryNames.has(key) && (typeof value === 'number' || typeof value === 'string')) {
+                        const candidateId = String(value);
+                        if (!normalized[username][candidateId]) {
+                            normalized[username][candidateId] = { scores: {} };
+                        }
+                        normalized[username][candidateId].scores[key] = 100;
+                    }
+                });
+            });
+
+            return normalized;
+        }
 
         const sidebarButtons = document.querySelectorAll('.nav-btn');
         const panels = document.querySelectorAll('.panel-card');
@@ -624,13 +816,17 @@
                 const votosData = await votosResponse.json();
 
                 candidatas = Array.isArray(data.candidatas) ? data.candidatas : [];
-                categorias = Array.isArray(data.categorias) ? data.categorias : [];
+                categorias = normalizeCategories(Array.isArray(data.categorias) ? data.categorias : []);
+                votingCategories = normalizeCategories(Array.isArray(data.voting_categories) ? data.voting_categories : []);
                 usuarios = Array.isArray(usuariosData.usuarios) ? usuariosData.usuarios : [];
-                votos = votosData.votos && typeof votosData.votos === 'object' ? votosData.votos : {};
+                votingMode = data.voting_mode || 'direct';
+                votos = normalizeVotesData(votosData.votos && typeof votosData.votos === 'object' ? votosData.votos : {}, categorias);
 
                 renderUsuarios();
                 renderCandidatas();
                 renderCategorias();
+                renderVotingCategories();
+                updateVotingModeUI();
                 renderVotos();
                 updateSummary();
             } catch (error) {
@@ -700,7 +896,9 @@
 
             let voteCount = 0;
             Object.values(votos).forEach(userVotes => {
-                voteCount += Object.keys(userVotes || {}).length;
+                Object.values(userVotes || {}).forEach(voteData => {
+                    voteCount += Object.keys(voteData?.scores || {}).length;
+                });
             });
             document.getElementById('summaryVotos').textContent = voteCount;
             document.getElementById('summarySavedVotes').textContent = voteCount;
@@ -722,6 +920,50 @@
             document.getElementById('summaryVotingState').textContent = votingEnabled ? 'Activo' : 'Bloqueado';
             document.getElementById('blockVotingBtn').style.display = votingEnabled ? 'inline-flex' : 'none';
             document.getElementById('enableVotingBtn').style.display = votingEnabled ? 'none' : 'inline-flex';
+        }
+
+        function updateVotingModeUI() {
+            const panelVotingCat = document.getElementById('votingCategoriesPanel');
+            const statusDiv = document.getElementById('votingModeStatus');
+            
+            if (votingMode === 'scoring') {
+                panelVotingCat.style.display = 'block';
+                statusDiv.textContent = '🎯 Modo: Votación por Puntaje (suma de categorías independientes de puestos)';
+                document.getElementById('votingModeDirectBtn').style.opacity = '0.6';
+                document.getElementById('votingModeScoringBtn').style.opacity = '1';
+            } else {
+                panelVotingCat.style.display = 'none';
+                statusDiv.textContent = '✓ Modo: Votación Directa (elegir una candidata por puesto)';
+                document.getElementById('votingModeDirectBtn').style.opacity = '1';
+                document.getElementById('votingModeScoringBtn').style.opacity = '0.6';
+            }
+        }
+
+        function renderVotingCategories() {
+            const list = document.getElementById('votingCategoriesList');
+            list.innerHTML = '';
+            if (!votingCategories.length) {
+                list.innerHTML = '<div class="status-item">No hay categorías de votación definidas.</div>';
+                return;
+            }
+
+            votingCategories.forEach(cat => {
+                const div = document.createElement('div');
+                div.className = 'item-row';
+                div.innerHTML = `
+                    <div class="item-main">
+                        <div style="width:18px;height:18px;border-radius:999px;background:${cat.color || '#00b6ff'};border:1px solid rgba(255,255,255,0.28);"></div>
+                        <div>
+                            <div class="item-title">${cat.name}</div>
+                            <p class="item-meta">Orden: ${cat.order || 'sin orden'} · Color: ${cat.color || '#00b6ff'}</p>
+                        </div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn btn-danger" data-action="delete-voting-category" data-name="${cat.name}">Eliminar</button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
         }
 
         function renderUsuarios() {
@@ -795,7 +1037,7 @@
                         <div style="width:18px;height:18px;border-radius:999px;background:${cat.color || '#fff'};border:1px solid rgba(255,255,255,0.28);"></div>
                         <div>
                             <div class="item-title">${cat.name}</div>
-                            <p class="item-meta">Color: ${cat.color || '#ffffff'}</p>
+                            <p class="item-meta">Puesto: ${cat.order || 'sin orden'} · Color: ${cat.color || '#ffffff'}</p>
                         </div>
                     </div>
                     <div class="item-actions">
@@ -816,74 +1058,57 @@
                 return;
             }
 
-            const ranking = {};
-            activeCategories.forEach(cat => {
-                ranking[cat.name] = {};
-            });
-
+            const totals = {};
             Object.values(votos).forEach(userVotes => {
-                Object.entries(userVotes || {}).forEach(([category, candId]) => {
-                    if (!ranking[category]) {
-                        ranking[category] = {};
+                Object.entries(userVotes || {}).forEach(([candId, voteData]) => {
+                    const candidate = candidatas.find(c => String(c.id) === String(candId));
+                    if (!candidate) return;
+                    const scores = voteData?.scores && typeof voteData.scores === 'object' ? voteData.scores : {};
+                    const totalScore = Object.values(scores).reduce((sum, score) => sum + clampScore(score), 0);
+
+                    if (!totals[candId]) {
+                        totals[candId] = {
+                            candidate,
+                            total: 0,
+                            scores: {}
+                        };
                     }
-                    const key = String(candId);
-                    ranking[category][key] = (ranking[category][key] || 0) + 1;
+
+                    totals[candId].total += totalScore;
+                    Object.entries(scores).forEach(([category, score]) => {
+                        totals[candId].scores[category] = (totals[candId].scores[category] || 0) + clampScore(score);
+                    });
                 });
             });
 
-            let hasRanking = false;
-            activeCategories.forEach(cat => {
-                const counts = ranking[cat.name] || {};
-                const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-                if (!sorted.length) {
-                    return;
-                }
+            const sortedTotals = Object.values(totals).sort((a, b) => b.total - a.total);
+            if (!sortedTotals.length) {
+                rankingList.innerHTML = '<div class="status-item">Aún no hay puntajes registrados.</div>';
+                return;
+            }
 
-                hasRanking = true;
+            sortedTotals.forEach((entry, index) => {
+                const candidate = entry.candidate;
+                const breakdown = activeCategories.map(cat => {
+                    const points = entry.scores[cat.name] || 0;
+                    return `<div class="status-item" style="border-left:4px solid ${cat.color || '#fff'}; padding:10px 12px;">${cat.name}: ${points} puntos</div>`;
+                }).join('');
+
                 const categoryBlock = document.createElement('div');
                 categoryBlock.className = 'status-item';
-                categoryBlock.style.borderLeft = `4px solid ${cat.color || '#fff'}`;
+                categoryBlock.style.borderLeft = '4px solid rgba(29, 144, 255, 0.9)';
                 categoryBlock.innerHTML = `
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
                         <div>
-                            <strong style="display:block;">${cat.name}</strong>
-                            <p class="item-meta" style="margin:4px 0 0;">Conteo en tiempo real</p>
+                            <strong style="display:block;">${index + 1}. ${candidate.nombre} · Nº ${candidate.numero}</strong>
+                            <p class="item-meta" style="margin:4px 0 0;">${entry.total} puntos acumulados</p>
                         </div>
-                        <span class="mini-badge badge-user">${sorted.length} candidatas</span>
+                        <span class="mini-badge badge-admin">${entry.total} pts</span>
                     </div>
+                    <div class="list-stack" style="margin-top:0; gap:8px;">${breakdown}</div>
                 `;
-
-                const rows = document.createElement('div');
-                rows.className = 'list-stack';
-                rows.style.marginTop = '0';
-                rows.style.gap = '8px';
-
-                sorted.forEach(([candId, count], index) => {
-                    const candidata = candidatas.find(c => String(c.id) === String(candId));
-                    const row = document.createElement('div');
-                    row.className = 'item-row';
-                    row.innerHTML = `
-                        <div class="item-main">
-                            ${candidata && candidata.foto ? `<img class="item-thumb" src="${candidata.foto}" alt="${candidata.nombre}">` : '<div class="item-thumb" style="display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.06);font-size:1rem;">🏆</div>'}
-                            <div>
-                                <div class="item-title">${index + 1}. ${candidata ? candidata.nombre : `Candidata ${candId}`} ${candidata ? `· Nº ${candidata.numero}` : ''}</div>
-                                <p class="item-meta">${count} voto${count === 1 ? '' : 's'} acumulado${count === 1 ? '' : 's'}</p>
-                            </div>
-                        </div>
-                        <div class="item-actions">
-                            <span class="mini-badge badge-admin">${count} votos</span>
-                        </div>
-                    `;
-                    rows.appendChild(row);
-                });
-
-                categoryBlock.appendChild(rows);
                 rankingList.appendChild(categoryBlock);
             });
-
-            if (!hasRanking) {
-                rankingList.innerHTML = '<div class="status-item">Aún no hay votos registrados.</div>';
-            }
         }
 
         function renderVotos() {
@@ -892,14 +1117,17 @@
 
             const flatVotes = [];
             Object.entries(votos).forEach(([username, userVotes]) => {
-                Object.entries(userVotes || {}).forEach(([category, candId]) => {
+                Object.entries(userVotes || {}).forEach(([candId, voteData]) => {
+                    const scores = voteData?.scores && typeof voteData.scores === 'object' ? voteData.scores : {};
                     const candidata = candidatas.find(c => String(c.id) === String(candId));
-                    flatVotes.push({ username, category, candId, candidata: candidata ? candidata.nombre : `ID ${candId}` });
+                    Object.entries(scores).forEach(([category, score]) => {
+                        flatVotes.push({ username, category, candId, score: clampScore(score), candidata: candidata ? candidata.nombre : `ID ${candId}` });
+                    });
                 });
             });
 
             if (!flatVotes.length) {
-                list.innerHTML = '<div class="status-item">Aún no hay votos registrados.</div>';
+                list.innerHTML = '<div class="status-item">Aún no hay puntajes registrados.</div>';
                 renderRanking();
                 return;
             }
@@ -911,7 +1139,7 @@
                     <div class="item-main">
                         <div>
                             <div class="item-title">${item.username} · ${item.category}</div>
-                            <p class="item-meta">Candidata: ${item.candidata} · ID: ${item.candId}</p>
+                            <p class="item-meta">Candidata: ${item.candidata} · ${item.score} puntos · ID: ${item.candId}</p>
                         </div>
                     </div>
                 `;
@@ -997,13 +1225,16 @@
             e.preventDefault();
             const name = document.getElementById('newCategory').value.trim();
             const color = document.getElementById('newCategoryColor').value;
+            const orderInput = document.getElementById('newCategoryOrder').value.trim();
             if (!name) return;
             if (categorias.some(cat => cat.name.toLowerCase() === name.toLowerCase())) {
                 alert('La categoría ya existe');
                 return;
             }
 
-            categorias.push({ name, color });
+            const order = orderInput ? Number(orderInput) : categorias.length + 1;
+            categorias.push({ name, color, order });
+            categorias = normalizeCategories(categorias);
             await saveCategorias(categorias);
             renderCategorias();
             updateSummary();
@@ -1011,9 +1242,12 @@
         });
 
         document.getElementById('clearVotesBtn').addEventListener('click', async () => {
-            await fetch('/api/clear-all-votes', { method: 'POST', headers: {'Content-Type': 'application/json'} });
-            await loadData();
-            await loadAdminStatus();
+            const confirmed = await showConfirmation('Eliminar todos los votos', '¿Estás seguro de que deseas eliminar todos los votos registrados? Esta acción no se puede deshacer.');
+            if (confirmed) {
+                await fetch('/api/clear-all-votes', { method: 'POST', headers: {'Content-Type': 'application/json'} });
+                await loadData();
+                await loadAdminStatus();
+            }
         });
 
         document.getElementById('blockVotingBtn').addEventListener('click', async () => {
@@ -1034,6 +1268,47 @@
             await refreshVotingState();
         });
 
+        document.getElementById('votingModeDirectBtn').addEventListener('click', async () => {
+            await fetch('/api/set-voting-mode', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ mode: 'direct' })
+            });
+            votingMode = 'direct';
+            updateVotingModeUI();
+        });
+
+        document.getElementById('votingModeScoringBtn').addEventListener('click', async () => {
+            await fetch('/api/set-voting-mode', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ mode: 'scoring' })
+            });
+            votingMode = 'scoring';
+            updateVotingModeUI();
+        });
+
+        document.getElementById('addVotingCategoryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('newVotingCategory').value.trim();
+            if (!name) return;
+            if (votingCategories.some(cat => cat.name.toLowerCase() === name.toLowerCase())) {
+                alert('La categoría ya existe');
+                return;
+            }
+
+            const order = votingCategories.length + 1;
+            votingCategories.push({ name, color: '#00b6ff', order });
+            votingCategories = normalizeCategories(votingCategories);
+            await fetch('/api/save-voting-categories', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ voting_categories: votingCategories })
+            });
+            renderVotingCategories();
+            e.target.reset();
+        });
+
         document.getElementById('logoutBtn').addEventListener('click', () => {
             localStorage.removeItem('currentUser');
             window.location.href = 'index.html';
@@ -1043,47 +1318,73 @@
             const { action } = e.target.dataset;
             if (action === 'delete-user') {
                 const username = e.target.dataset.username;
-                usuarios = usuarios.filter(u => u.username !== username);
-                delete votos[username];
-                await saveUsers(usuarios);
-                await fetch('/api/save-votos', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ votos })
-                });
-                await loadData();
+                const confirmed = await showConfirmation('Eliminar usuario', `¿Deseas eliminar al usuario "${username}"? Se eliminarán todos sus votos también.`);
+                if (confirmed) {
+                    usuarios = usuarios.filter(u => u.username !== username);
+                    delete votos[username];
+                    await saveUsers(usuarios);
+                    await fetch('/api/save-votos', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ votos })
+                    });
+                    await loadData();
+                }
             }
 
             if (action === 'delete-candidata') {
                 const id = e.target.dataset.id;
-                candidatas = candidatas.filter(c => String(c.id) !== String(id));
-                Object.values(votos).forEach(userVotes => {
-                    Object.keys(userVotes).forEach(cat => {
-                        if (String(userVotes[cat]) === String(id)) delete userVotes[cat];
+                const candidata = candidatas.find(c => String(c.id) === String(id));
+                const nombre = candidata ? candidata.nombre : 'candidata';
+                const confirmed = await showConfirmation('Eliminar candidata', `¿Deseas eliminar a "${nombre}"? Se eliminarán todos sus votos.`);
+                if (confirmed) {
+                    candidatas = candidatas.filter(c => String(c.id) !== String(id));
+                    Object.values(votos).forEach(userVotes => {
+                        Object.keys(userVotes).forEach(cat => {
+                            if (String(userVotes[cat]) === String(id)) delete userVotes[cat];
+                        });
                     });
-                });
-                await saveCandidatas(candidatas);
-                await fetch('/api/save-votos', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ votos })
-                });
-                await loadData();
+                    await saveCandidatas(candidatas);
+                    await fetch('/api/save-votos', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ votos })
+                    });
+                    await loadData();
+                }
             }
 
             if (action === 'delete-category') {
                 const category = e.target.dataset.name;
-                categorias = categorias.filter(cat => cat.name !== category);
-                Object.values(votos).forEach(userVotes => {
-                    delete userVotes[category];
-                });
-                await saveCategorias(categorias);
-                await fetch('/api/save-votos', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ votos })
-                });
-                await loadData();
+                const confirmed = await showConfirmation('Eliminar categoría', `¿Deseas eliminar la categoría "${category}"? Se eliminarán todos los votos asociados.`);
+                if (confirmed) {
+                    categorias = categorias.filter(cat => cat.name !== category);
+                    Object.values(votos).forEach(userVotes => {
+                        delete userVotes[category];
+                    });
+                    await saveCategorias(categorias);
+                    await fetch('/api/save-votos', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ votos })
+                    });
+                    await loadData();
+                }
+            }
+
+            if (action === 'delete-voting-category') {
+                const category = e.target.dataset.name;
+                const confirmed = await showConfirmation('Eliminar categoría de votación', `¿Deseas eliminar la categoría de votación "${category}"?`);
+                if (confirmed) {
+                    votingCategories = votingCategories.filter(cat => cat.name !== category);
+                    votingCategories = normalizeCategories(votingCategories);
+                    await fetch('/api/save-voting-categories', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ voting_categories: votingCategories })
+                    });
+                    renderVotingCategories();
+                }
             }
         });
 
@@ -1097,6 +1398,38 @@
                 await loadAdminStatus();
                 await refreshVotingState();
             }, 3000);
+        }
+
+        // Función para mostrar modal de confirmación
+        function showConfirmation(title, message) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('confirmationModal');
+                const titleEl = modal.querySelector('h3');
+                const messageEl = modal.querySelector('p');
+                const confirmBtn = modal.querySelector('.btn-confirm');
+                const cancelBtn = modal.querySelector('.btn-cancel');
+
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+
+                const handleConfirm = () => {
+                    modal.classList.remove('active');
+                    confirmBtn.removeEventListener('click', handleConfirm);
+                    cancelBtn.removeEventListener('click', handleCancel);
+                    resolve(true);
+                };
+
+                const handleCancel = () => {
+                    modal.classList.remove('active');
+                    confirmBtn.removeEventListener('click', handleConfirm);
+                    cancelBtn.removeEventListener('click', handleCancel);
+                    resolve(false);
+                };
+
+                confirmBtn.addEventListener('click', handleConfirm);
+                cancelBtn.addEventListener('click', handleCancel);
+                modal.classList.add('active');
+            });
         }
 
         init();

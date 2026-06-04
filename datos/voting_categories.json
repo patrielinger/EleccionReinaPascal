@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Belleza",
+    "color": "#00b6ff",
+    "order": 1
+  },
+  {
+    "name": "Simpatía",
+    "color": "#00b6ff",
+    "order": 2
+  },
+  {
+    "name": "Talento",
+    "color": "#00b6ff",
+    "order": 3
+  },
+  {
+    "name": "Pasarela",
+    "color": "#00b6ff",
+    "order": 4
+  }
+]

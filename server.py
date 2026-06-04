@@ -23,12 +23,14 @@ ALLOWED_EXTENSIONS = {'.html', '.css', '.js', '.json', '.png', '.jpg', '.jpeg', 
 ACTIVE_SESSIONS = {}
 CONNECTED_IPS = set()
 VOTING_ENABLED = True
+VOTING_MODE = 'direct'  # 'direct' o 'scoring'
 
 # Datos en memoria
 CANDIDATAS = []
 USUARIOS = []
 VOTOS = {}
-CATEGORIAS = []
+CATEGORIAS = []  # Puestos: Reina, Primera Princesa, etc.
+VOTING_CATEGORIES = []  # Categorías de votación para puntaje: Belleza, Simpatía, etc.
 
 # Lock único para todas las estructuras compartidas
 DATA_LOCK = threading.RLock()
@@ -40,13 +42,15 @@ CANDIDATAS_FILE = os.path.join(DATA_DIR, 'candidatas.json')
 USUARIOS_FILE  = os.path.join(DATA_DIR, 'usuarios.json')
 VOTOS_FILE     = os.path.join(DATA_DIR, 'votos.json')
 CATEGORIES_FILE = os.path.join(DATA_DIR, 'categorias.json')
+VOTING_CATEGORIES_FILE = os.path.join(DATA_DIR, 'voting_categories.json')
+CONFIG_FILE = os.path.join(DATA_DIR, 'config.json')
 
 DEFAULT_CATEGORIES = [
-    {'name': 'Reina',                 'color': '#ff6fe7'},
-    {'name': 'Primera Princesa',      'color': '#e6fa33'},
-    {'name': 'Segunda Princesa',      'color': '#e6fa33'},
-    {'name': 'Primera Dama de Honor', 'color': '#1fff40'},
-    {'name': 'Segunda Dama de Honor', 'color': '#1fff40'},
+    {'name': 'Reina',                 'color': '#ff6fe7', 'order': 1},
+    {'name': 'Primera Princesa',      'color': '#e6fa33', 'order': 2},
+    {'name': 'Segunda Princesa',      'color': '#e6fa33', 'order': 3},
+    {'name': 'Primera Dama de Honor', 'color': '#1fff40', 'order': 4},
+    {'name': 'Segunda Dama de Honor', 'color': '#1fff40', 'order': 5},
 ]
 
 # ---------------------------------------------------------------------------
@@ -54,7 +58,7 @@ DEFAULT_CATEGORIES = [
 # ---------------------------------------------------------------------------
 
 def load_data():
-    global CANDIDATAS, USUARIOS, VOTOS, CATEGORIAS
+    global CANDIDATAS, USUARIOS, VOTOS, CATEGORIAS, VOTING_CATEGORIES, VOTING_MODE
     with DATA_LOCK:
         try:
             if os.path.exists(CANDIDATAS_FILE):
@@ -89,15 +93,79 @@ def load_data():
         except Exception:
             CATEGORIAS = DEFAULT_CATEGORIES.copy()
 
+        try:
+            if os.path.exists(VOTING_CATEGORIES_FILE):
+                with open(VOTING_CATEGORIES_FILE, 'r', encoding='utf-8') as f:
+                    raw = json.load(f)
+                    VOTING_CATEGORIES = _normalize_voting_categories(raw)
+        except Exception:
+            VOTING_CATEGORIES = []
+
+        try:
+            if os.path.exists(CONFIG_FILE):
+                with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    VOTING_MODE = config.get('voting_mode', 'direct')
+        except Exception:
+            VOTING_MODE = 'direct'
+
 
 def _normalize_categorias(raw):
     result = []
-    for c in raw:
+    seen_orders = set()
+    for index, c in enumerate(raw or [], start=1):
         if isinstance(c, str):
-            result.append({'name': c, 'color': '#ff6fe7'})
+            name = str(c).strip()
+            order = index
+            item = {'name': name, 'color': '#ff6fe7', 'order': order}
         elif isinstance(c, dict) and c.get('name'):
-            result.append({'name': str(c['name']).strip(), 'color': c.get('color', '#ff6fe7')})
-    return result or DEFAULT_CATEGORIES.copy()
+            name = str(c['name']).strip()
+            order = c.get('order')
+            try:
+                order = int(order)
+            except (TypeError, ValueError):
+                order = index
+            if order in seen_orders:
+                order = max((item['order'] for item in result), default=0) + 1
+            seen_orders.add(order)
+            item = {'name': name, 'color': c.get('color', '#ff6fe7'), 'order': order}
+        else:
+            continue
+        result.append(item)
+
+    if not result:
+        return [dict(item) for item in DEFAULT_CATEGORIES]
+
+    result.sort(key=lambda item: item['order'])
+    return result
+
+
+def _normalize_voting_categories(raw):
+    """Normaliza categorías de votación para puntajes (Belleza, Simpatía, etc.)"""
+    result = []
+    seen_orders = set()
+    for index, c in enumerate(raw or [], start=1):
+        if isinstance(c, str):
+            name = str(c).strip()
+            order = index
+            item = {'name': name, 'color': '#00b6ff', 'order': order}
+        elif isinstance(c, dict) and c.get('name'):
+            name = str(c['name']).strip()
+            order = c.get('order')
+            try:
+                order = int(order)
+            except (TypeError, ValueError):
+                order = index
+            if order in seen_orders:
+                order = max((item['order'] for item in result), default=0) + 1
+            seen_orders.add(order)
+            item = {'name': name, 'color': c.get('color', '#00b6ff'), 'order': order}
+        else:
+            continue
+        result.append(item)
+
+    result.sort(key=lambda item: item['order'])
+    return result
 
 
 def _flush_to_disk():
@@ -111,6 +179,10 @@ def _flush_to_disk():
             json.dump(VOTOS, f, indent=2, ensure_ascii=False)
         with open(CATEGORIES_FILE, 'w', encoding='utf-8') as f:
             json.dump(CATEGORIAS, f, indent=2, ensure_ascii=False)
+        with open(VOTING_CATEGORIES_FILE, 'w', encoding='utf-8') as f:
+            json.dump(VOTING_CATEGORIES, f, indent=2, ensure_ascii=False)
+        with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+            json.dump({'voting_mode': VOTING_MODE}, f, indent=2, ensure_ascii=False)
     except Exception as e:
         logging.error(f"Error guardando datos: {e}")
 
@@ -203,6 +275,42 @@ def save_categorias(categorias):
             logging.error(f"Error guardando categorías: {e}")
 
 
+def load_voting_categories():
+    with DATA_LOCK:
+        return list(VOTING_CATEGORIES)
+
+def save_voting_categories(categories):
+    global VOTING_CATEGORIES
+    normalized = _normalize_voting_categories(categories)
+    with DATA_LOCK:
+        VOTING_CATEGORIES = normalized
+        try:
+            with open(VOTING_CATEGORIES_FILE, 'w', encoding='utf-8') as f:
+                json.dump(VOTING_CATEGORIES, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            logging.error(f"Error guardando categorías de votación: {e}")
+    logging.info(f"✓ Categorías de votación actualizadas: {len(normalized)}")
+
+
+def get_voting_mode():
+    with DATA_LOCK:
+        return VOTING_MODE
+
+def set_voting_mode(mode):
+    global VOTING_MODE
+    if mode not in ('direct', 'scoring'):
+        mode = 'direct'
+    with DATA_LOCK:
+        VOTING_MODE = mode
+        try:
+            with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+                json.dump({'voting_mode': VOTING_MODE}, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            logging.error(f"Error guardando configuración: {e}")
+    estado = 'votación directa' if mode == 'direct' else 'votación por puntaje'
+    logging.info(f"🗳️ Modo de votación cambiado a: {estado}")
+
+
 def get_admin_status():
     with DATA_LOCK:
         active_sessions = []
@@ -293,6 +401,10 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
             self.send_json(200, {'success': True, 'categorias': load_categorias()})
             return True
 
+        if path == '/api/load-voting-categories':
+            self.send_json(200, {'success': True, 'voting_categories': load_voting_categories()})
+            return True
+
         if path == '/api/load-votos':
             self.send_json(200, {'success': True, 'votos': load_votos()})
             return True
@@ -304,6 +416,8 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
                 'candidatas': load_candidatas(),
                 'votos':      load_votos(),
                 'categorias': load_categorias(),
+                'voting_categories': load_voting_categories(),
+                'voting_mode': get_voting_mode(),
             })
             return True
 
@@ -428,6 +542,15 @@ class SecureHandler(http.server.SimpleHTTPRequestHandler):
         elif path == '/api/save-categorias':
             save_categorias(data.get('categorias', []))
             self.send_json(200, {'success': True})
+
+        elif path == '/api/save-voting-categories':
+            save_voting_categories(data.get('voting_categories', []))
+            self.send_json(200, {'success': True})
+
+        elif path == '/api/set-voting-mode':
+            mode = data.get('mode', 'direct')
+            set_voting_mode(mode)
+            self.send_json(200, {'success': True, 'voting_mode': get_voting_mode()})
 
         elif path == '/api/clear-all-votes':
             clear_all_votes()
