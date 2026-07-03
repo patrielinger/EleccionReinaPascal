@@ -1,1 +1,16 @@
-{}
+{
+  "barrios": {
+    "Reina": 1777001180276,
+    "Primera Princesa": 1776300060231
+  },
+  "pato": {
+    "Reina": 1777001180276,
+    "Primera Princesa": 1776300060231,
+    "Segunda Princesa": 1777058602907,
+    "Segunda Dama de Honor": 1780577435626,
+    "Primera Dama de Honor": 1777058776873
+  },
+  "carlos": {
+    "Primera Princesa": 1776300060231
+  }
+}

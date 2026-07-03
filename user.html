@@ -121,7 +121,6 @@
                 if (!userVotes || typeof userVotes !== 'object') return;
 
                 Object.entries(userVotes).forEach(([key, value]) => {
-                    // Votos en formato de puntajes: {candidateId: {scores: {...}}}
                     if (value && typeof value === 'object' && !Array.isArray(value) && 'scores' in value) {
                         normalized[username][key] = {
                             ...value,
@@ -130,8 +129,6 @@
                         return;
                     }
 
-                    // Votos en formato directo: {categoria: candidateId}
-                    // Mantener como está, NO transformar
                     if (categoryNames.has(key) && (typeof value === 'number' || typeof value === 'string')) {
                         normalized[username][key] = value;
                     }
@@ -313,69 +310,56 @@
             const userVotes = votos[currentUser.username] || {};
             let html = '';
             const orderedCategories = [...(categorias.length ? categorias : defaultCategorias)].sort((a, b) => (Number(a.order || 0) - Number(b.order || 0)));
-            
-            const assignedCandidates = []; // Almacena candidatas ya asignadas a puestos
 
-            orderedCategories.forEach((cat, index) => {
-                const className = slugify(cat.name);
-                let displayCard = null;
-                let totalScore = 0;
-
-                if (votingMode === 'scoring') {
-                    // Modo puntaje: mostrar candidata con más puntos totales en este puesto
-                    // pero que no haya sido asignada ya a otro puesto
-                    let bestCandidate = null;
-                    let bestTotalScore = 0;
-
-                    Object.entries(userVotes).forEach(([candId, voteData]) => {
-                        // Saltar si ya fue asignada a otro puesto
-                        if (assignedCandidates.includes(String(candId))) return;
-                        
+            if (votingMode === 'scoring') {
+                orderedCategories.forEach((cat, index) => {
+                    const className = slugify(cat.name);
+                    const voteEntry = Object.entries(userVotes).find(([candId, voteData]) => {
                         const candidate = candidatas.find(c => String(c.id) === String(candId));
-                        if (!candidate) return;
-                        
-                        // Sumar todos los puntos de esta candidata en todas las categorías de votación
-                        let totalPoints = 0;
+                        if (!candidate) return false;
                         const scores = voteData?.scores || {};
-                        Object.values(scores).forEach(score => {
-                            totalPoints += Number(score || 0);
-                        });
-
-                        if (totalPoints > bestTotalScore) {
-                            bestTotalScore = totalPoints;
-                            bestCandidate = candidate;
-                        }
+                        return scores[cat.name] && Number(scores[cat.name]) > 0;
                     });
 
-                    if (bestCandidate && bestTotalScore > 0) {
-                        displayCard = bestCandidate;
-                        totalScore = bestTotalScore;
-                        assignedCandidates.push(String(bestCandidate.id)); // Marcar como asignada
-                    }
-                } else {
-                    // Modo directo: mostrar candidata votada en este puesto
-                    const votedId = userVotes[cat.name];
-                    if (votedId) {
-                        displayCard = candidatas.find(c => c.id == votedId);
-                    }
-                }
+                    const displayCard = voteEntry ? candidatas.find(c => String(c.id) === String(voteEntry[0])) : null;
+                    const totalScore = displayCard ? Object.values(userVotes[String(displayCard.id)]?.scores || {}).reduce((sum, score) => sum + clampScore(score), 0) : 0;
 
-                html += `<div class="${className}"><h3>${cat.name} <span style="font-size:0.72rem; opacity:0.7;">(puesto ${index + 1})</span></h3>`;
-                if (displayCard) {
-                    html += `
-                        <div class="candidata-card" onclick="showDetails(${displayCard.id})">
-                            <img src="${displayCard.foto || 'img/default.jpg'}" alt="${displayCard.nombre}">
-                            <h3>${displayCard.nombre}</h3>
-                            <p>Candidata: <b>${displayCard.numero}</b></p>
-                            ${votingMode === 'scoring' && totalScore > 0 ? `<p><strong>${totalScore} puntos</strong></p>` : ''}
-                        </div>
-                    `;
-                } else {
-                    const noVoteMsg = votingMode === 'scoring' ? 'No has puntuado en este puesto' : 'No has votado en este puesto';
-                    html += `<p>${noVoteMsg}</p>`;
-                }
-                html += '</div>';
-            });
+                    html += `<div class="${className}"><h3>${cat.name} <span style="font-size:0.72rem; opacity:0.7;">(puesto ${index + 1})</span></h3>`;
+                    if (displayCard && totalScore > 0) {
+                        html += `
+                            <div class="candidata-card" onclick="showDetails(${displayCard.id})">
+                                <img src="${displayCard.foto || 'img/default.jpg'}" alt="${displayCard.nombre}">
+                                <h3>${displayCard.nombre}</h3>
+                                <p>Candidata: <b>${displayCard.numero}</b></p>
+                                <p><strong>${totalScore} puntos</strong></p>
+                            </div>
+                        `;
+                    } else {
+                        html += `<p>No has puntuado en este puesto</p>`;
+                    }
+                    html += '</div>';
+                });
+            } else {
+                orderedCategories.forEach((cat, index) => {
+                    const className = slugify(cat.name);
+                    const votedId = userVotes[cat.name];
+                    const displayCard = votedId ? candidatas.find(c => String(c.id) === String(votedId)) : null;
+
+                    html += `<div class="${className}"><h3>${cat.name} <span style="font-size:0.72rem; opacity:0.7;">(puesto ${index + 1})</span></h3>`;
+                    if (displayCard) {
+                        html += `
+                            <div class="candidata-card" onclick="showDetails(${displayCard.id})">
+                                <img src="${displayCard.foto || 'img/default.jpg'}" alt="${displayCard.nombre}">
+                                <h3>${displayCard.nombre}</h3>
+                                <p>Candidata: <b>${displayCard.numero}</b></p>
+                            </div>
+                        `;
+                    } else {
+                        html += `<p>No has votado en este puesto</p>`;
+                    }
+                    html += '</div>';
+                });
+            }
 
             document.getElementById('rankingContent').innerHTML = html;
         }
@@ -549,18 +533,7 @@
             if (!votos[currentUser.username]) votos[currentUser.username] = {};
             const userVotes = votos[currentUser.username];
 
-            // Eliminar cualquier voto previo de esta candidata en otra categoría
-            for (const [cat, votedCandId] of Object.entries({...userVotes})) {
-                if (votedCandId == candId && cat !== categoria) {
-                    delete userVotes[cat];
-                }
-            }
-
-            // Reemplazar el voto de la categoría seleccionada si ya había otra candidata
-            if (userVotes[categoria] && userVotes[categoria] !== candId) {
-                delete userVotes[categoria];
-            }
-
+            // Cada categoría/puesto es independiente. Solo se sobrescribe el voto de esa categoría.
             userVotes[categoria] = candId;
             queueVotePayload({
                 username: currentUser.username,

@@ -1,0 +1,22 @@
+04/06/26 10:21:41 - INFO - ✓ Datos cargados en memoria
+04/06/26 10:21:41 - INFO - ✓ Guardado automático cada 30 s
+04/06/26 10:21:41 - INFO - ============================================================
+04/06/26 10:21:41 - INFO - 🎓 SERVIDOR DE ELECCIONES (v3 - Threading)
+04/06/26 10:21:41 - INFO - ============================================================
+04/06/26 10:21:41 - INFO - ✓ Puerto: 3000
+04/06/26 10:21:41 - INFO - ✓ Modo: multi-hilo (hasta 50+ usuarios simultáneos)
+04/06/26 10:21:41 - INFO - ✓ Logs: logs\04_06_26_10_21.log
+04/06/26 10:21:41 - INFO - 🌐 Local:  http://localhost:3000
+04/06/26 10:21:41 - INFO - 📱 Red:    http://192.168.100.66:3000
+04/06/26 10:21:41 - INFO - 🖥️  Panel admin abierto automáticamente: http://localhost:3000/admin-dashboard
+04/06/26 10:21:41 - INFO - 
+04/06/26 10:21:41 - INFO - 🌐 Nueva IP: 127.0.0.1
+04/06/26 10:22:36 - INFO - 🗳️ Modo de votación cambiado a: votación directa
+04/06/26 10:22:39 - INFO - 🗳️ Modo de votación cambiado a: votación por puntaje
+04/06/26 10:22:41 - INFO - 🗳️ Modo de votación cambiado a: votación directa
+04/06/26 10:23:00 - INFO - 🗳️ Modo de votación cambiado a: votación por puntaje
+04/06/26 10:23:08 - INFO - ✓ Categorías de votación actualizadas: 5
+04/06/26 10:23:15 - INFO - ✓ Login: pato (dev_6bp0…)
+04/06/26 10:23:37 - INFO - ➖ Categoría ELIMINADA: 'Segunda Dama de Honor'
+04/06/26 10:23:55 - INFO - ✓ Votos actualizados: 1 totales
+04/06/26 10:24:08 - INFO - ✓ Votos actualizados: 2 totales

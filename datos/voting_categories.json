@@ -18,5 +18,10 @@
     "name": "Pasarela",
     "color": "#00b6ff",
     "order": 4
+  },
+  {
+    "name": "Baile",
+    "color": "#00b6ff",
+    "order": 5
   }
 ]

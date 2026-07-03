@@ -368,6 +368,67 @@
             font-size: 0.77rem;
         }
 
+        .ranking-preview-panel {
+            margin: 16px 0 18px;
+            padding: 14px;
+            border-radius: 14px;
+            background: linear-gradient(180deg, rgba(29, 144, 255, 0.14), rgba(8, 16, 31, 0.95));
+            border: 1px solid rgba(29, 144, 255, 0.22);
+        }
+
+        .ranking-preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            gap: 8px;
+        }
+
+        .ranking-preview-header h3 {
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+        .ranking-preview-list {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .ranking-preview-card {
+            min-width: 180px;
+            flex: 0 0 180px;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(9, 18, 31, 0.92);
+            border: 1px solid rgba(74, 116, 170, 0.18);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        .ranking-preview-rank {
+            display: inline-flex;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: rgba(29, 144, 255, 0.18);
+            color: #8bd8ff;
+            font-size: 0.74rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .ranking-preview-card strong {
+            display: block;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+        }
+
+        .ranking-preview-card .item-meta {
+            margin: 0;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
         @media (max-width: 960px) {
             .app-shell { flex-direction: column; }
             .sidebar { width: auto; }
@@ -657,10 +718,11 @@
                         </div>
                     </div>
 
-                    <div style="display:flex; gap:10px; margin-bottom:12px;">
+                    <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
                         <button class="btn btn-danger" id="clearVotesBtn">Eliminar todos los votos</button>
                         <button class="btn btn-secondary" id="blockVotingBtn">Bloquear votaciones</button>
                         <button class="btn btn-primary" id="enableVotingBtn" style="display:none;">Reactivar votaciones</button>
+                        <button class="btn btn-primary" id="exportVotesBtn" style="display:none;">Exportar votos (.csv)</button>
                     </div>
 
                     <div style="margin-top:16px; padding:12px; border-radius:12px; background:rgba(74,116,170,0.15); border:1px solid rgba(74,116,170,0.25);">
@@ -680,6 +742,14 @@
                             <button type="submit" class="btn btn-primary">Agregar</button>
                         </form>
                         <div id="votingCategoriesList" class="list-stack"></div>
+                    </div>
+
+                    <div class="ranking-preview-panel">
+                        <div class="ranking-preview-header">
+                            <h3>Vista previa del ranking final</h3>
+                            <span class="mini-badge badge-admin">Horizontal</span>
+                        </div>
+                        <div id="rankingPreviewList" class="ranking-preview-list"></div>
                     </div>
 
                     <div style="margin-bottom:10px; margin-top:16px;">
@@ -714,6 +784,7 @@
         let votingEnabled = true;
         let votingMode = 'direct';
         let adminStatusRefresh = null;
+        let rawVotesData = {};
 
         function clampScore(value) {
             const number = Number.parseInt(value, 10);
@@ -772,11 +843,7 @@
                     }
 
                     if (categoryNames.has(key) && (typeof value === 'number' || typeof value === 'string')) {
-                        const candidateId = String(value);
-                        if (!normalized[username][candidateId]) {
-                            normalized[username][candidateId] = { scores: {} };
-                        }
-                        normalized[username][candidateId].scores[key] = 100;
+                        normalized[username][key] = value;
                     }
                 });
             });
@@ -820,7 +887,8 @@
                 votingCategories = normalizeCategories(Array.isArray(data.voting_categories) ? data.voting_categories : []);
                 usuarios = Array.isArray(usuariosData.usuarios) ? usuariosData.usuarios : [];
                 votingMode = data.voting_mode || 'direct';
-                votos = normalizeVotesData(votosData.votos && typeof votosData.votos === 'object' ? votosData.votos : {}, categorias);
+                rawVotesData = votosData.votos && typeof votosData.votos === 'object' ? votosData.votos : {};
+                votos = normalizeVotesData(rawVotesData, categorias);
 
                 renderUsuarios();
                 renderCandidatas();
@@ -896,8 +964,12 @@
 
             let voteCount = 0;
             Object.values(votos).forEach(userVotes => {
-                Object.values(userVotes || {}).forEach(voteData => {
-                    voteCount += Object.keys(voteData?.scores || {}).length;
+                Object.entries(userVotes || {}).forEach(([key, voteData]) => {
+                    if (voteData && typeof voteData === 'object' && !Array.isArray(voteData) && 'scores' in voteData) {
+                        voteCount += Object.keys(voteData.scores || {}).length;
+                    } else if (typeof voteData === 'number' || typeof voteData === 'string') {
+                        voteCount += 1;
+                    }
                 });
             });
             document.getElementById('summaryVotos').textContent = voteCount;
@@ -920,6 +992,7 @@
             document.getElementById('summaryVotingState').textContent = votingEnabled ? 'Activo' : 'Bloqueado';
             document.getElementById('blockVotingBtn').style.display = votingEnabled ? 'inline-flex' : 'none';
             document.getElementById('enableVotingBtn').style.display = votingEnabled ? 'none' : 'inline-flex';
+            document.getElementById('exportVotesBtn').style.display = votingEnabled ? 'none' : 'inline-flex';
         }
 
         function updateVotingModeUI() {
@@ -964,6 +1037,103 @@
                 `;
                 list.appendChild(div);
             });
+        }
+
+        function escapeCsvValue(value) {
+            if (value === null || value === undefined) return '';
+            const stringValue = String(value).replace(/\r?\n/g, ' ');
+            return /[",\n]/.test(stringValue) ? `"${stringValue.replace(/"/g, '""')}"` : stringValue;
+        }
+
+        function downloadCsv(filename, rows) {
+            const content = rows.map(row => row.map(escapeCsvValue).join(',')).join('\n');
+            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function exportVotesToCsv() {
+            const rows = [];
+            const userVoteRows = [];
+
+            if (votingMode === 'scoring') {
+                const rankingTotals = {};
+
+                Object.entries(rawVotesData || {}).forEach(([username, userVotes]) => {
+                    if (!userVotes || typeof userVotes !== 'object') return;
+                    const voteSummaryParts = [];
+
+                    Object.entries(userVotes).forEach(([candidateId, voteData]) => {
+                        const candidate = candidatas.find(c => String(c.id) === String(candidateId));
+                        const scores = voteData?.scores && typeof voteData.scores === 'object' ? voteData.scores : {};
+                        const total = votingCategories.reduce((sum, cat) => sum + clampScore(scores[cat.name] || 0), 0);
+                        voteSummaryParts.push(`${candidate ? candidate.nombre : `ID ${candidateId}`} (${votingCategories.map(cat => `${cat.name}: ${clampScore(scores[cat.name] || 0)}`).join(', ')})`);
+
+                        if (!rankingTotals[candidateId]) {
+                            rankingTotals[candidateId] = { candidate, candidateId, total: 0 };
+                        }
+                        rankingTotals[candidateId].total += total;
+                    });
+
+                    userVoteRows.push([username, voteSummaryParts.join(' | ') || 'Sin votos']);
+                });
+
+                rows.push(['RESUMEN FINAL']);
+                rows.push(['Candidata', 'Puesto', 'Puntaje total']);
+                Object.values(rankingTotals)
+                    .sort((a, b) => b.total - a.total || String(a.candidate?.nombre || '').localeCompare(String(b.candidate?.nombre || '')))
+                    .forEach((entry, index) => {
+                        rows.push([entry.candidate ? entry.candidate.nombre : `ID ${entry.candidateId}`, index + 1, entry.total]);
+                    });
+
+                rows.push([]);
+                rows.push(['USUARIOS Y SUS VOTOS']);
+                rows.push(['Usuario', 'Votos']);
+                userVoteRows.forEach(row => rows.push(row));
+
+                downloadCsv('votos_puntaje.csv', rows);
+                return;
+            }
+
+            const voteCounts = {};
+            const voteSummaryByUser = {};
+
+            Object.entries(rawVotesData || {}).forEach(([username, userVotes]) => {
+                if (!userVotes || typeof userVotes !== 'object') return;
+                const summaryParts = [];
+                Object.entries(userVotes).forEach(([category, candidateId]) => {
+                    if (typeof candidateId === 'number' || typeof candidateId === 'string') {
+                        const candidate = candidatas.find(c => String(c.id) === String(candidateId));
+                        summaryParts.push(`${category}: ${candidate ? candidate.nombre : `ID ${candidateId}`}`);
+                        if (!voteCounts[candidateId]) {
+                            voteCounts[candidateId] = { candidate, candidateId, total: 0 };
+                        }
+                        voteCounts[candidateId].total += 1;
+                    }
+                });
+                voteSummaryByUser[username] = summaryParts.join(' | ') || 'Sin votos';
+            });
+
+            rows.push(['RESUMEN FINAL']);
+            rows.push(['Candidata', 'Puesto', 'Votos recibidos']);
+            Object.values(voteCounts)
+                .sort((a, b) => b.total - a.total || String(a.candidate?.nombre || '').localeCompare(String(b.candidate?.nombre || '')))
+                .forEach((entry, index) => {
+                    rows.push([entry.candidate ? entry.candidate.nombre : `ID ${entry.candidateId}`, index + 1, entry.total]);
+                });
+
+            rows.push([]);
+            rows.push(['USUARIOS Y SUS VOTOS']);
+            rows.push(['Usuario', 'Votos']);
+            Object.entries(voteSummaryByUser).forEach(([username, summary]) => {
+                rows.push([username, summary]);
+            });
+
+            downloadCsv('votos_directos.csv', rows);
         }
 
         function renderUsuarios() {
@@ -1048,67 +1218,170 @@
             });
         }
 
+        function computeRankingSummary() {
+            if (votingMode === 'scoring') {
+                const totals = {};
+
+                Object.entries(rawVotesData || {}).forEach(([username, userVotes]) => {
+                    if (!userVotes || typeof userVotes !== 'object') return;
+                    Object.entries(userVotes).forEach(([candidateId, voteData]) => {
+                        const candidate = candidatas.find(c => String(c.id) === String(candidateId));
+                        if (!candidate) return;
+                        const scores = voteData?.scores && typeof voteData.scores === 'object' ? voteData.scores : {};
+                        const totalScore = votingCategories.reduce((sum, cat) => sum + clampScore(scores[cat.name] || 0), 0);
+
+                        if (!totals[candidateId]) {
+                            totals[candidateId] = { candidate, total: 0, scores: {}, directVotes: 0 };
+                        }
+
+                        totals[candidateId].total += totalScore;
+                        votingCategories.forEach(cat => {
+                            totals[candidateId].scores[cat.name] = (totals[candidateId].scores[cat.name] || 0) + clampScore(scores[cat.name] || 0);
+                        });
+                    });
+                });
+
+                return Object.values(totals).sort((a, b) => b.total - a.total || String(a.candidate?.nombre || '').localeCompare(String(b.candidate?.nombre || '')));
+            }
+
+            return categorias.map(cat => {
+                const totalsByCandidate = {};
+
+                Object.entries(votos || {}).forEach(([username, userVotes]) => {
+                    if (!userVotes || typeof userVotes !== 'object') return;
+                    const value = userVotes?.[cat.name];
+                    if (typeof value === 'number' || typeof value === 'string') {
+                        const candidate = candidatas.find(c => String(c.id) === String(value));
+                        if (!candidate) return;
+                        const normalizedCandidateId = String(value);
+                        if (!totalsByCandidate[normalizedCandidateId]) {
+                            totalsByCandidate[normalizedCandidateId] = { candidate, votes: 0 };
+                        }
+                        totalsByCandidate[normalizedCandidateId].votes += 1;
+                    }
+                });
+
+                return {
+                    category: cat.name,
+                    results: Object.values(totalsByCandidate).sort((a, b) => b.votes - a.votes || String(a.candidate?.nombre || '').localeCompare(String(b.candidate?.nombre || '')))
+                };
+            }).filter(entry => entry.results.length);
+        }
+
+        function renderRankingPreview() {
+            const previewList = document.getElementById('rankingPreviewList');
+            if (!previewList) return;
+
+            if (votingMode === 'scoring') {
+                const sortedTotals = computeRankingSummary();
+                if (!sortedTotals.length) {
+                    previewList.innerHTML = '<div class="status-item">Aún no hay votos para mostrar.</div>';
+                    return;
+                }
+
+                previewList.innerHTML = '';
+                sortedTotals.slice(0, 5).forEach((entry, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'ranking-preview-card';
+                    card.innerHTML = `
+                        <span class="ranking-preview-rank">#${index + 1}</span>
+                        <strong>${entry.candidate.nombre} · Nº ${entry.candidate.numero}</strong>
+                        <p class="item-meta">${entry.total} puntos acumulados</p>
+                    `;
+                    previewList.appendChild(card);
+                });
+                return;
+            }
+
+            const categoryRankings = computeRankingSummary();
+            if (!categoryRankings.length) {
+                previewList.innerHTML = '<div class="status-item">Aún no hay votos para mostrar.</div>';
+                return;
+            }
+
+            previewList.innerHTML = '';
+            categoryRankings.forEach(({ category, results }) => {
+                const winner = results[0];
+                const card = document.createElement('div');
+                card.className = 'ranking-preview-card';
+                card.innerHTML = `
+                    <span class="ranking-preview-rank">🏅</span>
+                    <strong>${category}: ${winner ? `${winner.candidate.nombre} · Nº ${winner.candidate.numero}` : 'Sin votos'}</strong>
+                    <p class="item-meta">${winner ? `${winner.votes} voto${winner.votes > 1 ? 's' : ''}` : 'Sin votos'}</p>
+                `;
+                previewList.appendChild(card);
+            });
+        }
+
         function renderRanking() {
             const rankingList = document.getElementById('rankingList');
             rankingList.innerHTML = '';
 
-            const activeCategories = categorias.length ? categorias : [];
-            if (!activeCategories.length) {
-                rankingList.innerHTML = '<div class="status-item">No hay categorías disponibles.</div>';
-                return;
-            }
+            if (votingMode === 'scoring') {
+                const sortedTotals = computeRankingSummary();
+                if (!sortedTotals.length) {
+                    rankingList.innerHTML = '<div class="status-item">Aún no hay puntajes registrados.</div>';
+                    renderRankingPreview();
+                    return;
+                }
 
-            const totals = {};
-            Object.values(votos).forEach(userVotes => {
-                Object.entries(userVotes || {}).forEach(([candId, voteData]) => {
-                    const candidate = candidatas.find(c => String(c.id) === String(candId));
-                    if (!candidate) return;
-                    const scores = voteData?.scores && typeof voteData.scores === 'object' ? voteData.scores : {};
-                    const totalScore = Object.values(scores).reduce((sum, score) => sum + clampScore(score), 0);
+                sortedTotals.forEach((entry, index) => {
+                    const candidate = entry.candidate;
+                    const breakdown = votingCategories.length ? votingCategories.map(cat => {
+                        const points = entry.scores[cat.name] || 0;
+                        return `<div class="status-item" style="border-left:4px solid ${cat.color || '#fff'}; padding:10px 12px;">${cat.name}: ${points} puntos</div>`;
+                    }).join('') : '<div class="status-item" style="padding:10px 12px;">Sin categorías de puntuación definidas.</div>';
 
-                    if (!totals[candId]) {
-                        totals[candId] = {
-                            candidate,
-                            total: 0,
-                            scores: {}
-                        };
-                    }
-
-                    totals[candId].total += totalScore;
-                    Object.entries(scores).forEach(([category, score]) => {
-                        totals[candId].scores[category] = (totals[candId].scores[category] || 0) + clampScore(score);
-                    });
+                    const categoryBlock = document.createElement('div');
+                    categoryBlock.className = 'status-item';
+                    categoryBlock.style.borderLeft = '4px solid rgba(29, 144, 255, 0.9)';
+                    categoryBlock.innerHTML = `
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
+                            <div>
+                                <strong style="display:block;">${index + 1}. ${candidate.nombre} · Nº ${candidate.numero}</strong>
+                                <p class="item-meta" style="margin:4px 0 0;">${entry.total} puntos acumulados</p>
+                            </div>
+                            <span class="mini-badge badge-admin">${entry.total} pts</span>
+                        </div>
+                        <div class="list-stack" style="margin-top:0; gap:8px;">${breakdown}</div>
+                    `;
+                    rankingList.appendChild(categoryBlock);
                 });
-            });
 
-            const sortedTotals = Object.values(totals).sort((a, b) => b.total - a.total);
-            if (!sortedTotals.length) {
-                rankingList.innerHTML = '<div class="status-item">Aún no hay puntajes registrados.</div>';
+                renderRankingPreview();
                 return;
             }
 
-            sortedTotals.forEach((entry, index) => {
-                const candidate = entry.candidate;
-                const breakdown = activeCategories.map(cat => {
-                    const points = entry.scores[cat.name] || 0;
-                    return `<div class="status-item" style="border-left:4px solid ${cat.color || '#fff'}; padding:10px 12px;">${cat.name}: ${points} puntos</div>`;
-                }).join('');
+            const categoryRankings = computeRankingSummary();
+            if (!categoryRankings.length) {
+                rankingList.innerHTML = '<div class="status-item">Aún no hay votos directos registrados.</div>';
+                renderRankingPreview();
+                return;
+            }
+
+            categoryRankings.forEach(({ category, results }) => {
+                const listContent = results.map((entry, index) => `
+                    <div class="status-item" style="padding:10px 12px;">
+                        <strong>#${index + 1}</strong> ${entry.candidate.nombre} · Nº ${entry.candidate.numero} · ${entry.votes} voto${entry.votes > 1 ? 's' : ''}
+                    </div>
+                `).join('');
 
                 const categoryBlock = document.createElement('div');
                 categoryBlock.className = 'status-item';
-                categoryBlock.style.borderLeft = '4px solid rgba(29, 144, 255, 0.9)';
+                categoryBlock.style.borderLeft = '4px solid rgba(255, 111, 231, 0.9)';
                 categoryBlock.innerHTML = `
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
                         <div>
-                            <strong style="display:block;">${index + 1}. ${candidate.nombre} · Nº ${candidate.numero}</strong>
-                            <p class="item-meta" style="margin:4px 0 0;">${entry.total} puntos acumulados</p>
+                            <strong style="display:block;">${category}</strong>
+                            <p class="item-meta" style="margin:4px 0 0;">Ranking aislado por puesto</p>
                         </div>
-                        <span class="mini-badge badge-admin">${entry.total} pts</span>
                     </div>
-                    <div class="list-stack" style="margin-top:0; gap:8px;">${breakdown}</div>
+                    <div class="list-stack" style="margin-top:0; gap:8px;">${listContent || '<div class="status-item" style="padding:10px 12px;">Sin votos en este puesto.</div>'}</div>
                 `;
                 rankingList.appendChild(categoryBlock);
             });
+
+            renderRankingPreview();
         }
 
         function renderVotos() {
@@ -1116,18 +1389,32 @@
             list.innerHTML = '';
 
             const flatVotes = [];
-            Object.entries(votos).forEach(([username, userVotes]) => {
-                Object.entries(userVotes || {}).forEach(([candId, voteData]) => {
-                    const scores = voteData?.scores && typeof voteData.scores === 'object' ? voteData.scores : {};
-                    const candidata = candidatas.find(c => String(c.id) === String(candId));
-                    Object.entries(scores).forEach(([category, score]) => {
-                        flatVotes.push({ username, category, candId, score: clampScore(score), candidata: candidata ? candidata.nombre : `ID ${candId}` });
+            if (votingMode === 'scoring') {
+                Object.entries(votos).forEach(([username, userVotes]) => {
+                    Object.entries(userVotes || {}).forEach(([candId, voteData]) => {
+                        const scores = voteData?.scores && typeof voteData.scores === 'object' ? voteData.scores : {};
+                        const candidata = candidatas.find(c => String(c.id) === String(candId));
+                        Object.entries(scores).forEach(([category, score]) => {
+                            flatVotes.push({ username, category, candId, score: clampScore(score), candidata: candidata ? candidata.nombre : `ID ${candId}` });
+                        });
                     });
                 });
-            });
+            } else {
+                Object.entries(votos || {}).forEach(([username, userVotes]) => {
+                    if (!userVotes || typeof userVotes !== 'object') return;
+                    Object.entries(userVotes).forEach(([category, candidateId]) => {
+                        if (typeof candidateId === 'number' || typeof candidateId === 'string') {
+                            const candidata = candidatas.find(c => String(c.id) === String(candidateId));
+                            flatVotes.push({ username, category, candId: candidateId, score: null, candidata: candidata ? candidata.nombre : `ID ${candidateId}` });
+                        }
+                    });
+                });
+            }
 
             if (!flatVotes.length) {
-                list.innerHTML = '<div class="status-item">Aún no hay puntajes registrados.</div>';
+                list.innerHTML = votingMode === 'scoring'
+                    ? '<div class="status-item">Aún no hay puntajes registrados.</div>'
+                    : '<div class="status-item">Aún no hay votos directos registrados.</div>';
                 renderRanking();
                 return;
             }
@@ -1139,7 +1426,7 @@
                     <div class="item-main">
                         <div>
                             <div class="item-title">${item.username} · ${item.category}</div>
-                            <p class="item-meta">Candidata: ${item.candidata} · ${item.score} puntos · ID: ${item.candId}</p>
+                            <p class="item-meta">Candidata: ${item.candidata}${item.score !== null ? ` · ${item.score} puntos` : ''} · ID: ${item.candId}</p>
                         </div>
                     </div>
                 `;
@@ -1266,6 +1553,10 @@
                 body: JSON.stringify({ enabled: true })
             });
             await refreshVotingState();
+        });
+
+        document.getElementById('exportVotesBtn').addEventListener('click', () => {
+            exportVotesToCsv();
         });
 
         document.getElementById('votingModeDirectBtn').addEventListener('click', async () => {

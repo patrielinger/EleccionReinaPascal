@@ -1,0 +1,51 @@
+25/06/26 10:09:26 - INFO - ✓ Datos cargados en memoria
+25/06/26 10:09:26 - INFO - ✓ Guardado automático cada 30 s
+25/06/26 10:09:26 - INFO - ============================================================
+25/06/26 10:09:26 - INFO - 🎓 SERVIDOR DE ELECCIONES (v3 - Threading)
+25/06/26 10:09:26 - INFO - ============================================================
+25/06/26 10:09:26 - INFO - ✓ Puerto: 3000
+25/06/26 10:09:26 - INFO - ✓ Modo: multi-hilo (hasta 50+ usuarios simultáneos)
+25/06/26 10:09:26 - INFO - ✓ Logs: logs\25_06_26_10_09.log
+25/06/26 10:09:26 - INFO - 🌐 Local:  http://localhost:3000
+25/06/26 10:09:26 - INFO - 📱 Red:    http://192.168.100.66:3000
+25/06/26 10:09:26 - INFO - 🖥️  Panel admin abierto automáticamente: http://localhost:3000/admin-dashboard
+25/06/26 10:09:26 - INFO - 
+25/06/26 10:09:39 - INFO - 🌐 Nueva IP: 127.0.0.1
+25/06/26 10:10:24 - INFO - 🗳️ Modo de votación cambiado a: votación por puntaje
+25/06/26 10:10:26 - INFO - 🗳️ Modo de votación cambiado a: votación por puntaje
+25/06/26 10:10:27 - INFO - 🗳️ Modo de votación cambiado a: votación por puntaje
+25/06/26 10:10:28 - INFO - 🗳️ Modo de votación cambiado a: votación por puntaje
+25/06/26 10:10:28 - INFO - 🗳️ Modo de votación cambiado a: votación por puntaje
+25/06/26 10:10:29 - INFO - 🗳️ Modo de votación cambiado a: votación directa
+25/06/26 10:10:39 - INFO - 🗳️ Modo de votación cambiado a: votación por puntaje
+25/06/26 10:10:49 - INFO - 🧹 Todos los votos eliminados
+25/06/26 10:11:29 - INFO - 🧹 Todos los votos eliminados
+25/06/26 10:11:30 - INFO - 🔒 Votaciones bloqueadas
+25/06/26 10:11:34 - INFO - 🔒 Votaciones activadas
+25/06/26 10:11:40 - INFO - 🔒 Votaciones bloqueadas
+25/06/26 10:11:52 - INFO - ✓ Login: pato (dev_6bp0…)
+25/06/26 10:11:57 - INFO - 🔒 Votaciones activadas
+25/06/26 10:12:10 - INFO - 🗳️ Modo de votación cambiado a: votación directa
+25/06/26 10:12:15 - INFO - ✓ Login: carlos (dev_6bp0…)
+25/06/26 10:12:25 - INFO - ✓ Login: barrios (dev_6bp0…)
+25/06/26 10:12:31 - INFO - ✓ Votos actualizados: 1 totales
+25/06/26 10:12:37 - INFO - ✓ Votos actualizados: 2 totales
+25/06/26 10:12:40 - INFO - ✓ Votos actualizados: 3 totales
+25/06/26 10:12:43 - INFO - ✓ Votos actualizados: 4 totales
+25/06/26 10:12:47 - INFO - ✓ Votos actualizados: 5 totales
+25/06/26 10:12:54 - INFO - ✓ Votos actualizados: 6 totales
+25/06/26 10:12:56 - INFO - ✓ Votos actualizados: 7 totales
+25/06/26 10:12:59 - INFO - ✓ Votos actualizados: 8 totales
+25/06/26 10:13:03 - INFO - ✓ Votos actualizados: 9 totales
+25/06/26 10:13:08 - INFO - ✓ Votos actualizados: 10 totales
+25/06/26 10:13:13 - INFO - ✓ Votos actualizados: 11 totales
+25/06/26 10:13:16 - INFO - ✓ Votos actualizados: 12 totales
+25/06/26 10:13:19 - INFO - ✓ Votos actualizados: 13 totales
+25/06/26 10:13:22 - INFO - ✓ Votos actualizados: 13 totales
+25/06/26 10:13:25 - INFO - ✓ Votos actualizados: 14 totales
+25/06/26 10:13:28 - INFO - ✓ Votos actualizados: 15 totales
+25/06/26 10:13:36 - INFO - 🔒 Votaciones bloqueadas
+25/06/26 10:16:17 - INFO - 🗳️ Modo de votación cambiado a: votación por puntaje
+25/06/26 10:16:32 - INFO - 🔒 Votaciones activadas
+25/06/26 10:21:53 - INFO - 🔒 Votaciones bloqueadas
+25/06/26 10:21:56 - INFO - 🗳️ Modo de votación cambiado a: votación directa
