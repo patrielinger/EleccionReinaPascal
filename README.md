@@ -189,6 +189,7 @@ Si no muestra errores, la sintaxis del servidor es válida.
 ### El servidor no inicia
 - Verifica que Python esté instalado correctamente.
 - Revisa que el puerto 3000 no esté ocupado.
+```Archivo server.py -> Linea 22 -> Modificar el puerto 3000 a otro sugerido en el comentario.```
 - Prueba con otra terminal y confirma que no haya otro proceso escuchando ese puerto.
 
 ### No puedo acceder desde otros dispositivos
@@ -206,7 +207,7 @@ Si no muestra errores, la sintaxis del servidor es válida.
 
 ## 📌 Resumen rápido
 
-Para usar el sistema:
+Para usar el sistema Administrador:
 
 1. Instala Python 3.
 2. Abre la carpeta del proyecto.
@@ -214,3 +215,10 @@ Para usar el sistema:
 4. Abre `http://localhost:3000`.
 5. Inicia sesión con `admin/admin`.
 6. Configura candidatas, usuarios y votaciones desde el panel administrativo.
+
+Para usar el sistema Usuario:
+
+1. Abrir el navegador desde una computadora o telefono celular.
+2. Ingresar la ip y el puerto dado en la terminal del administrador.
+3. Colocar el nombre de usuario y contraseña para ingresar (no olvidar diferenciar las mayusculas).
+4. Elegir una candidata de la lista y votar.

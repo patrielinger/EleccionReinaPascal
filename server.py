@@ -18,6 +18,7 @@ import logging
 from datetime import datetime
 from io import StringIO
 
+# Modificar el puereto si es que esta ocupado, alternativas sugeridas: 5500, 5000, 8080
 PORT = 3000
 ALLOWED_EXTENSIONS = {'.html', '.css', '.js', '.json', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico'}
 ACTIVE_SESSIONS = {}
